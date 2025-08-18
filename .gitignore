@@ -1,0 +1,10 @@
+bin/
+obj/
+/packages/
+riderModule.iml
+/_ReSharper.Caches/
+
+# Test folder bins and objs - explicitly reset
+/Tests/Partas.GitNet.Tests/TestGitProject/.idea
+/Tests/Partas.GitNet.Tests/TestGitProject/TestGitProject/obj
+/Tests/Partas.GitNet.Tests/TestGitProject/TestGitProject/bin

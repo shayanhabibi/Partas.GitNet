@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net9.0</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Include="Utils.fs" />
+        <Compile Include="ConfigWrapper.fs" />
+        <Compile Include="Spectre\Output.fs" />
+        <Compile Include="Commands\Greet.fs" />
+        <Compile Include="Commands\Info.fs" />
+        <Compile Include="Program.fs"/>
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="EluciusFTW.SpectreCoff" Version="0.50.7" />
+      <PackageReference Include="Spectre.Console" Version="0.50.0" />
+      <PackageReference Include="Spectre.Console.Cli" Version="0.50.0" />
+      <PackageReference Remove="FSharp.Core" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Partas.GitNet\Partas.GitNet.fsproj" />
+    </ItemGroup>
+
+</Project>

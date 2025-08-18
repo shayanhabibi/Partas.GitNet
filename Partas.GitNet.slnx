@@ -1,0 +1,17 @@
+﻿<Solution>
+  <Folder Name="/ci/">
+    <File Path=".github/**/*" />
+  </Folder>
+  <Folder Name="/misc/">
+    <File Path="README.md" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="Partas.GitNet.Cli\Partas.GitNet.Cli.fsproj" Type="Classic F#" />
+    <Project Path="Partas.GitNet\Partas.GitNet.fsproj" Type="Classic F#" />
+    <Project Path="Partas.Tools.SepochSemver\Partas.Tools.SepochSemver.fsproj" Type="Classic F#" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="Tests\Partas.GitNet.Tests\Partas.GitNet.Tests.fsproj" Type="Classic F#" />
+    <Project Path="Tests\Partas.Tools.SepochSemver.Tests\Partas.Tools.SepochSemver.Tests.fsproj" Type="Classic F#" />
+  </Folder>
+</Solution>
