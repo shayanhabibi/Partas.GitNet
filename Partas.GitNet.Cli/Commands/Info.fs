@@ -11,15 +11,21 @@ open Spectre.Console.Cli
 open SpectreCoff
 open Output
 
+type ProjectInfo = {
+    Scope: string
+    Path: string
+}
 type GitNetInfo = {
     ``Git Path``: string
     ``Root Directory``: string
-    Projects: string[]
+    Projects: ProjectInfo[]
 }
 
 type InfoSettings() =
     inherit CommandSettings()
-    [<CommandOption("-p|--path")>]
+    [<CommandOption("-i|--ignoreProject")>]
+    member val ignoredProjects: string array = [||] with get,set
+    [<CommandArgument(0,"[path]")>]
     member val path = System.Environment.CurrentDirectory with get,set
     override self.Validate() =
         if self.path = System.Environment.CurrentDirectory then
@@ -40,15 +46,52 @@ type Info() =
     
     override this.Execute(context, settings) =
         let runtime = new GitNetRuntime({
-            GitNetConfig.init with
+            GitNetConfig.initFSharp with
                 RepositoryPath = settings.path
+                ProjectType =
+                    {
+                        Defaults.FSharp.projectFSharpConfig with
+                            AutoScoping = function
+                                | "Partas.GitNet" ->
+                                    Some "Partas"
+                                | _ -> None
+                            IgnoredProjects = [
+                                "Partas.Solid.Tests.Plugin"
+                                "ScratchTests"
+                                "Partas.Solid.Tests.Plugin"
+                                "Partas.Solid.Tests.Core"
+                                "Partas.Solid.FablePlugin"
+                                "Partas.Solid"
+                                "Partas.Solid.Tests"
+                            ]
+                    }
+                    |> Some
+                    |> ProjectType.FSharp
         })
         {
             ``Root Directory`` = runtime.rootDir
             ``Git Path`` = runtime.repo.Info.Path
-            Projects = runtime.CrackRepo |> Seq.map _.ProjectFileName |> Seq.toArray
+            Projects =
+                runtime.CrackRepo
+                |> Seq.choose (
+                    CrackedProject.getFSharp
+                    >> ValueOption.filter _.GitNetOptions.Scope.IsSome
+                    >> ValueOption.map (function
+                        { FSharpCrackedProject.ProjectFileName = projectFileName
+                          FSharpCrackedProject.GitNetOptions = { Scope = scope } } ->
+                            {
+                                Path = System.IO.Path.GetRelativePath(runtime.rootDir, projectFileName)
+                                Scope = scope.Value
+                            }
+                        )
+                    >> ValueOption.toOption
+                    )
+                |> Seq.toArray
         }
-        |> Dumpify.dump
+        |> Dumpify.customDump {
+            Dumpify.defaultOptions with
+                TypeNames = Dumpify.TypeNamingConfig(ShowTypeNames = false) |> Some
+        }
         |> ignore
         0
 
@@ -60,12 +103,15 @@ type Projects() =
     interface ICommandLimiter<InfoSettings>
     override this.Execute(context, settings) =
         let runtime = new GitNetRuntime({
-            GitNetConfig.init with
+            GitNetConfig.initFSharp with
                 RepositoryPath = settings.path
         })
         runtime.CrackRepo
         |> Seq.toArray : ``Projects Info``
-        |> Dumpify.dump
+        |> Dumpify.customDump {
+            Dumpify.defaultOptions with
+                TypeNames = Dumpify.TypeNamingConfig(ShowTypeNames = false) |> Some
+        }
         |> ignore
         0
 
@@ -80,12 +126,12 @@ type Commits() =
     interface ICommandLimiter<InfoSettings>
     override this.Execute (context: CommandContext, settings): int =
         let runtime = new GitNetRuntime({
-            GitNetConfig.init with
+            GitNetConfig.initFSharp with
                 RepositoryPath = settings.path
         })
         TagCommitCollection.load runtime
         |> Render.fromTagCommitCollection runtime
-        |> MarkdownWriter.writeRendering
+        |> MarkdownWriter.writeRendering runtime
         |> Dumpify.dump
         |> ignore
         0

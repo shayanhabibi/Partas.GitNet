@@ -27,6 +27,16 @@ type GitNetRuntime(config: GitNetConfig) =
             >> _.Contains("github.com")
             )
         |> Option.map GitHubRemote
+    let cachedStats =
+        {|
+            AssemblyFiles = HashSet<string>()
+            Versions = HashSet<string>()
+            Tags = HashSet<string>()
+        |}
+    let cacheAssemblyFile = cachedStats.AssemblyFiles.Add >> ignore
+    let cacheVersionFile = cachedStats.Versions.Add >> ignore
+    let cacheTag = cachedStats.Tags.Add >> ignore
+    
     let dir =
         _repo |> Repository.info
         |> RepositoryInformation.workingDirectory
@@ -76,6 +86,9 @@ type GitNetRuntime(config: GitNetConfig) =
         with get
     member val rootDir = dir with get
     member val config = config with get
+    member this.GetAssemblyFileStats = cachedStats.AssemblyFiles.Count
+    member this.GetVersionFileStats = cachedStats.Versions.Count
+    member this.GetTagStats = cachedStats.Tags.Count
     interface System.IDisposable with
         member this.Dispose() =
             Repository.dispose _repo
@@ -98,12 +111,13 @@ type GitNetRuntime(config: GitNetConfig) =
     member this.CommitTags(tags: SepochSemver seq) =
         tags
         |> Seq.iter (fun sepochSemver ->
-            
             try
+            let sepochSemver = sepochSemver.ToString()
             Repository.applyTag
-                (sepochSemver.ToString())
+                sepochSemver
                 this.repo
             |> ignore
+            cacheTag sepochSemver
             with
             | :? NameConflictException as e ->
                 printfn $"Duplicate tag %A{sepochSemver}:\n%A{e}"
@@ -114,34 +128,31 @@ type GitNetRuntime(config: GitNetConfig) =
         commits
         |> Seq.map (GitNetCommit.parsed >> config.ComputeGroupMatcher)
         |> Seq.zip commits
-
-// let mutable private cachedRuntime = Unchecked.defaultof<GitNetRuntime>
-// let mutable private _savedRuntime = false
-// type Cache =
-//     static member load =
-//         if _savedRuntime then
-//             cachedRuntime
-//         else
-//             failwith "You must save a runtime before loading it from the cache"
-//     static member tryLoad =
-//         if _savedRuntime then
-//             Some cachedRuntime
-//         else None
-//     static member save runtime =
-//         _savedRuntime <- true
-//         cachedRuntime <- runtime
-
-module Footer =
-    let getValueForKey key = function
-        | ParsedCommit.Unconventional _ -> ValueNone
-        | ParsedCommit.Breaking { Footers = footers }
-        | ParsedCommit.Conventional { Footers = footers } ->
-            footers
-            |> List.find ((fun x -> x :> IFooter) >> _.Key >> (=) key)
-            |> fun footer -> footer :> IFooter |> _.Value
-            |> ValueSome
-    let containsKey key = getValueForKey key >> _.IsSome
-
+    member internal this.StatAssemblyFile = cacheAssemblyFile
+    member internal this.StatVersionFile = cacheVersionFile
+    member internal this.StatTag = cacheTag
+module Runtime =
+    let computeEpochFooterMatcher (runtime: GitNetRuntime): Footer -> bool =
+        let runtimeEpochMatches: string -> bool = fun value ->
+            runtime.config.Bump.Mapping.Epoch
+            |> List.map _.Value
+            |> List.contains value
+        function
+        | Footer(key,_) ->
+            runtimeEpochMatches key
+        | BreakingChange _ ->
+            runtimeEpochMatches Spec.BreakingChangeKey
+    let computeEpochFooterPicker (runtime: GitNetRuntime) =
+        let matcher = computeEpochFooterMatcher runtime
+        fun footers -> footers |> Seq.tryFind matcher
+    let computeEpochValuePicker runtime =
+        computeEpochFooterPicker runtime >> Option.map(
+            function
+                | Footer(_,value) -> value
+                | BreakingChange(value) -> value
+                )
+    let computeParsedCommitBumpMatcher (runtime: GitNetRuntime) =
+        runtime.config.Bump.Mapping.ComputeBumpMatcher
 /// <summary>
 /// Checks the <c>ParsedCommit</c> against the <c>GitNetConfig</c> to
 /// determine if the commit would indicate a bump, and if so, of what type.
@@ -153,24 +164,21 @@ module Footer =
 /// </remarks>
 /// <param name="runtime">The provider for the values to match against the bump types.</param>
 let willBump (runtime: GitNetRuntime) =
-    let footerContainsEpoch (footers: Footer list) =
-        footers
-        |> List.tryPick (function
-            | Footer(key,value) when
-                runtime.config.Bump.Mapping.Epoch
-                |> List.map _.Value
-                |> List.contains key -> Some value
-            | _ -> None)
+    let epochMatcher = Runtime.computeEpochFooterMatcher runtime
     function
     | Conventional { Footers = footers } | Breaking { Footers = footers }
-        when footerContainsEpoch footers |> _.IsSome ->
-        footerContainsEpoch footers
-        |> _.Value
+        when footers |> List.exists epochMatcher ->
+        let epochPicker = Runtime.computeEpochValuePicker runtime
+        footers
+        |> epochPicker
+        |> Option.get
         |> BumpType.Epoch
         |> ValueSome
     | Breaking _ ->
-        BumpType.Major |> ValueSome
+        BumpType.Major
+        |> ValueSome
     | value ->
-        let matcher = runtime.config.Bump.Mapping.ComputeBumpMatcher
-        value |> matcher
+        let parsedCommitMatcher = Runtime.computeParsedCommitBumpMatcher runtime
+        value
+        |> parsedCommitMatcher
         |> ValueOption.ofOption

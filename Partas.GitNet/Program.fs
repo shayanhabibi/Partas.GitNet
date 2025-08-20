@@ -1,5 +1,5 @@
-﻿module Partas.GitNet.Program
-
+﻿[<AutoOpen>]
+module Partas.GitNet.RunExtensions
 open System.Collections.Generic
 open FSharp.Formatting.Markdown
 open LibGit2Sharp.FSharp
@@ -11,13 +11,10 @@ open Partas.GitNet.RepoCracker
 open Partas.Tools.SepochSemver
 
 type GitNetRuntime with
-    member this.Run() =
+    member private this.DryRunImpl() =
         let tagCommitCollection = TagCommitCollection.load this
         let render = fromTagCommitCollection this tagCommitCollection
         let renderMarkup = writeRendering this render
-        let markdownString =
-            renderMarkup.Document
-            |> Markdown.ToMd
         let projs =
             this.CrackRepo
             |> Seq.filter _.IsFSharp
@@ -32,38 +29,9 @@ type GitNetRuntime with
                     )
             |> toFrozenDictionary
         let initialVersionForScope (scope: string) =
-            let success,initVers = projs.TryGetValue(scope)
-            if success then
-                {
-                    Sepoch = Sepoch.Scope scope
-                    SemVer = initVers
-                }
-                |> Some
-            else
-            match this.config.InitialVersionStrategy with
-            | ProjectInitialVersionStrategy.Simple s ->
-                try
-                parseSepochSemver s
-                |> Some
-                with _ -> None
-            | ProjectInitialVersionStrategy.None -> None
-            | ProjectInitialVersionStrategy.Mapping dictionary ->
-                let success,result = dictionary.TryGetValue(scope)
-                if success then
-                    try parseSepochSemver result |> Some
-                    with _ -> None
-                else None
-            | ProjectInitialVersionStrategy.MappingOrSimple(mapping, fallback) ->
-                try
-                let success,result = mapping.TryGetValue(scope)
-                if success
-                then
-                    try parseSepochSemver result |> Some
-                    with _ ->
-                        parseSepochSemver fallback |> Some
-                else
-                    parseSepochSemver fallback |> Some
-                with _ -> None
+            match projs.TryGetValue(scope) with
+            | true, semver -> Some { Sepoch = Sepoch.Scope scope; SemVer = semver }
+            | _ -> None
 
         let bumps =
             renderMarkup.ScopeBumps
@@ -118,37 +86,106 @@ type GitNetRuntime with
                         scope, nekVersion
                 )
             |> dict
+        bumps,renderMarkup
+    member this.DryRun() =
+        let bumps,content = this.DryRunImpl()
+        let markdownString =
+            content.Document
+            |> Markdown.ToMd
         bumps,markdownString
+    /// Acts upon 'autobump' and other settings
+    member this.Run() =
+        let bumps,content = this.DryRunImpl()
+        let matchesRepoBranch = this.repo |> Repository.head |> Branch.name |> (=)
+        let autoTaggedSemvers =
+            this.CrackRepo
+            |> Seq.choose(
+                CrackedProject.getFSharp
+                >> ValueOption.bind (
+                    CrackedProject.FSharp.gitNetOptions
+                    >> function
+                        {
+                            AutoBump = true
+                            AutoBumpBranchName = branchName
+                            Scope = scope
+                        } when (branchName.IsNone
+                             || branchName.Value |> matchesRepoBranch)
+                             && bumps.ContainsKey(scope.Value) ->
+                               ValueSome bumps[scope.Value]
+                        | _ -> ValueNone
+                    )
+                >> ValueOption.toOption
+                )
+            |> Seq.toArray
         
+        #if DEBUG
+        match this.config.AssemblyFiles with
+        | AssemblyFileManagement.Create when this.GetAssemblyFileStats > 0 ->
+            this.GetAssemblyFileStats
+            |> printfn "STATS:\nWritten %i assembly files"
+        | _ -> ()
+        #endif
+        
+        match this.config.AssemblyFiles with
+        | AssemblyFileManagement.Create
+        | AssemblyFileManagement.UpdateIfExists when autoTaggedSemvers |> Array.isEmpty |> not ->
+            this.WriteAssemblyFiles(autoTaggedSemvers)
+            this.VersionProjects(
+                autoTaggedSemvers
+                |> Array.choose(function
+                    | { Sepoch = sepoch } as semver when sepoch.GetScope.IsSome ->
+                        Some (sepoch.GetScope.Value, semver)
+                    | _ -> None
+                        )
+                |> dict
+                , true
+                )
+            this.CommitChanges("GitHub Actions", "noreply@github.com")
+            this.CommitTags(autoTaggedSemvers)
+            let result = this.DryRun()
+            #if DEBUG
+            (this.GetAssemblyFileStats, this.GetTagStats, this.GetVersionFileStats)
+            |||> printfn "STATS:\nWritten %i assembly files\nWritten %i tags\nOverwritten %i project files"
+            #endif
+            result
+        | AssemblyFileManagement.None when autoTaggedSemvers |> Array.isEmpty |> not ->
+            this.CommitTags(autoTaggedSemvers)
+            let result = this.DryRun()
+            #if DEBUG
+            (this.GetAssemblyFileStats, this.GetTagStats, this.GetVersionFileStats)
+            |||> printfn "STATS:\nWritten %i assembly files\nWritten %i tags\nOverwritten %i project files"
+            #endif
+            result
+        | _ ->
+            bumps, content.Document |> Markdown.ToMd
+
 open FSharp.Data
-[<EntryPoint>]
-let main args =
-    // let path = @"C:\Users\shaya\RiderProjects\Partas.Solid.Primitives\"
-    // let path = @"C:/Users/shaya/riderprojects/partas.gitnet/tests/partas.gitnet.tests/partas.solid.testground/"
-    // let path = @"C:/Users/shaya/riderprojects/FullPerla/"
-    let path = @"C:/Users/shaya/riderprojects/oxpecker.solid.jitbox/"
-    {
-        GitNetConfig.init true with
-            RepositoryPath = path
-            Output.Ignore =
-                IgnoreCommit.SkipCi ::
-                Defaults.ignoreCommits
-    }
-    |> fun config ->
-        let runtime = new GitNetRuntime(config)
-        let bumps,content = runtime.Run()
-        // runtime.CommitTags(bumps.Values)
-        // runtime.CommitChanges("shayanhabibi","shayanftw@gmail.com")
-        content
-        |> printfn "%A"
-        bumps
-        |> printfn "%A"
-        runtime.WriteAssemblyFiles(bumps)
-        runtime.StageVersionProjects(bumps)
-        runtime.CommitChanges("GitHub Actions", "noreply@github.com")
-        // let bumps,content = runtime.Run()
-        // content
-        // |> printfn "%A"
-        // bumps
-        // |> printfn "%A"
-    0
+module Program =
+    [<EntryPoint>]
+    let main args =
+        // let path = @"C:\Users\shaya\RiderProjects\Partas.Solid.Primitives\"
+        // let path = @"C:/Users/shaya/riderprojects/partas.gitnet/tests/partas.gitnet.tests/partas.solid.testground/"
+        // let path = @"C:/Users/shaya/riderprojects/FullPerla/"
+        let path = @"C:/Users/shaya/riderprojects/oxpecker.solid.jitbox/"
+        {
+            GitNetConfig.init true with
+                RepositoryPath = path
+                Output.Ignore =
+                    IgnoreCommit.SkipCi ::
+                    Defaults.ignoreCommits
+                AssemblyFiles = AssemblyFileManagement.Create
+                // Bump.DefaultBumpStrategy = ForceBumpStrategy.All
+        }
+        |> fun config ->
+            let runtime = new GitNetRuntime(config)
+            // let bumps,content = runtime.DryRun()
+            // runtime.WriteAssemblyFiles(bumps)
+            // runtime.StageVersionProjects(bumps)
+            // runtime.CommitChanges("GitHub Actions", "noreply@github.com")
+            let bumps,content = runtime.Run()
+            content
+            |> printfn "%A"
+            bumps
+            |> printfn "%A"
+            
+        0

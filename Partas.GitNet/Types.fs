@@ -26,14 +26,14 @@ type BumpType =
 type FSharpCrackedProject = {
     /// The project directory path from the repo root.
     ProjectDirectory: string
-    /// The project file name (.fsproj extension) from the repo root.
+    /// The project file path (.fsproj extension) relative to repo root.
     ProjectFileName: string
     /// Compiled files in the project. Currently un-utilised
     SourceFiles: string list
     /// AssemblyFile for the project if present relative to the project directory path.
     AssemblyFile: string option
     /// GitNet configuration properties in the project.
-    GitNetOptions: CrackedProject.GitNetOptions    
+    GitNetOptions: CrackedProject.GitNetOptions
 }
 
 /// Record of details for a non FSharp project (or where a project is, and its name).
@@ -60,7 +60,24 @@ module CrackedProject =
         Scope: string option
         /// GitNetEpoch
         Epoch: string option
+        /// GitNetAutoBumpBranchName
+        AutoBumpBranchName: string option
     }
+    let getFSharp = function
+        | CrackedProject.FSharp proj -> ValueSome proj
+        | _ -> ValueNone
+    let getNonFSharp = function
+        | CrackedProject.NonFSharp proj -> ValueSome proj
+        | _ -> ValueNone
+    module FSharp =
+        let projectDirectory: FSharpCrackedProject -> _ = _.ProjectDirectory
+        let projectFileName = _.ProjectFileName
+        let sourceFiles = _.SourceFiles
+        let assemblyFile = _.AssemblyFile >> ValueOption.ofOption
+        let gitNetOptions = _.GitNetOptions
+    module NonFSharp =
+        let projectDirectory = _.ProjectDirectory
+        let scope: NonFSCrackedProject -> _ = _.Scope
 
 /// A record of the parsed commit, and the git object it was
 /// derived from.

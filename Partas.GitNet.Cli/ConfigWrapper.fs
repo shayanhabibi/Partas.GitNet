@@ -1,6 +1,9 @@
-﻿module Partas.GitNet.Cli.ConfigWrapper
+﻿module ConfigWrapper
 
+open System.Collections.Generic
 open Partas.GitNet
+open Partas.GitNet.Cli
+open Partas.GitNet.Cli.Utils
 
 // Json schema
 module OptionTypes =
@@ -31,3 +34,49 @@ module OptionTypes =
     type NetworkConfig = ConfigTypes.NetworkConfig option
     type GitNetConfig = ConfigTypes.GitNetConfig option
 
+type Paths = {
+    Repository: string option
+    Output: string option
+}
+type FSharpConfig = {
+    /// Testing documents
+    Ignored: string[]
+    AssemblyFiles: OptionTypes.AssemblyFileManagement
+    NamingResolution: OptionTypes.FSharpNameResolution
+}
+
+type BumpMapper = {
+    Epoch: EpochMatcher list option
+    Major: BumpMatcher list option
+    Minor: BumpMatcher list option
+    Patch: BumpMatcher list option
+}
+type CommitConfig = {
+    Ignored: IgnoreCommit[] option
+    BumpMapping: BumpMapper option
+}
+
+type GitNetConfig =
+    {
+        Paths: Paths option
+        FSharp: FSharpConfig option
+        Projects: OptionTypes.ProjectNoneConfig
+        GithubUrl: string option
+        AutoBump: OptionTypes.ForceBumpStrategy
+        ScopingStrategy: OptionTypes.ScopeStrategy
+        Commits: CommitConfig option
+    }
+
+let schema =
+    typeof<GitNetConfig>
+    |> FSharp.Data.JsonSchema.Generator.Create()
+
+module ConfigSchema =
+    let find path =
+        ConfigFile.tryFind path
+        |> Option.map(
+            Fake.IO.File.readAsString
+            >> FSharp.Data.Json.Deserialize<GitNetConfig>
+            )
+        
+        

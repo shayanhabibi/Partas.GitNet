@@ -129,10 +129,12 @@ type GitNetRuntime with
             try
             this.repo
             |> Repository.index
-            |> Index.addFile projectPath
+            |> Index.addFile project.ProjectFileName
+            this.StatVersionFile projectPath
             with e ->
                 e
                 |> printfn "Filed to stage %s:\n%A" projectPath
+        else this.StatVersionFile projectPath
     /// <summary>
     /// Uses the bump dictionary
     /// to write the versions to the
@@ -162,7 +164,7 @@ type GitNetRuntime with
         |> Seq.iter(
             fun (proj,semver) ->
                 this.VersionProject(proj, semver.SemVer, false)
-                index |> Index.addFile proj.ProjectFileName
+                index |> Index.addFile (System.IO.Path.GetRelativePath(this.rootDir,proj.ProjectFileName))
             )
         index |> Index.write
         index.Count - initial

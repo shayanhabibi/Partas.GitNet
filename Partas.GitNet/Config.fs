@@ -192,24 +192,24 @@ type IgnoreCommit =
     /// <remarks>
     /// The committer is distinguished from the author.
     /// </remarks>
-    | Author of string
+    | Author of author: string
     /// <summary>
     /// Ignores commits based on the <c>Author</c> email.
     /// </summary>
-    | Email of string
+    | Email of email: string
     /// <summary>
     /// Ignores commits based on the <c>Type</c> (if they are conventional commits).
     /// </summary>
-    | Type of string
+    | Type of ``type``: string
     /// <summary>
     /// Ignores commits based on a <c>FooterKey</c> (if they are conventional commits).
     /// </summary>
-    | FooterKey of string
+    | FooterKey of footerToken: string
     /// <summary>
     /// Ignores commits based on a <c>FooterKey</c> and <c>FooterValue</c> combination
     /// (if they are conventional commits).
     /// </summary>
-    | FooterKeyValue of string * string
+    | FooterKeyValue of footerToken: string * footerValue: string
     /// <summary>
     /// Ignores commits based on their <c>Sha</c>.
     /// </summary>
@@ -218,23 +218,23 @@ type IgnoreCommit =
     /// given <c>Sha</c>. This means you can use abbreviated Shas at your own
     /// discretion.
     /// </remarks>
-    | Sha of string
+    | Sha of sha: string
     /// <summary>
     /// Ignore all commits related to a tag.
     /// </summary>
-    | Tag of string
+    | Tag of tag: string
     /// <summary>
     /// Ignore all commits that were made within a
     /// specified time period.
     /// </summary>
-    | TimeRange of DateTimeOffset * TimeSpan
+    | TimeRange of fromDate: DateTimeOffset * timeSpan: TimeSpan
     /// <summary>
     /// Ignore all commits that have a specified conventional commit scope.
     /// </summary>
-    | CommitScope of string
+    | CommitScope of scope: string
     /// Ignore all commits that have conventional commit subject,
     /// or a first line that matches the given regex.
-    | SubjectRegex of Regex
+    | SubjectRegex of regex: Regex
     /// Ignore all commits that start with [skip ci].
     | SkipCi
 
@@ -265,6 +265,10 @@ type ForceBumpStrategy =
     /// For specific scope if it is the CWD, else all.
     /// </summary>
     | Auto
+    /// <summary>
+    /// No bump
+    /// </summary>
+    | None
 [<RequireQualifiedAccess>]
 type ForceBumpValue =
     /// <summary>
@@ -358,11 +362,6 @@ type ScopeStrategy =
     /// under that scope.
     /// </summary>
     | Auto
-    /// <summary>
-    /// Explicit scopes are logged, and unscoped commits are
-    /// logged as a monolith (no involvement in version management).
-    /// </summary>
-    | ExplicitOrUnscoped
 
 /// <summary>
 /// Strategies for determining whether a commit will result in a specified
@@ -683,10 +682,12 @@ type BumpConfig = {
     /// </summary>
     DefaultBumpStrategy: ForceBumpStrategy
     /// <summary>
+    /// NO OP -
     /// When to pipe a release note section for GH.
     /// </summary>
     GenerateRelease: GenerateRelease
     /// <summary>
+    /// NO OP -
     /// How to provide the release notes.
     /// </summary>
     GenerateReleaseStrategy: GenerateReleaseStrategy
@@ -754,7 +755,7 @@ module Defaults =
         let projectNoneConfig = {
             PathScopeMapping = dict []
         }
-        let scopeStrategy = ScopeStrategy.ExplicitOrUnscoped
+        let scopeStrategy = ScopeStrategy.Auto
     let fileSplittingStrategy = FileSplittingStrategy.Monolith
     let scopePrefixConfig = ScopePrefixConfig.SquareBrackets
     let macroGroupType = MacroGroupType.Scoped
@@ -774,7 +775,7 @@ module Defaults =
 
 
     let commitConfig = { Ignore = [] }
-    let forceBumpStrategy = ForceBumpStrategy.Auto
+    let forceBumpStrategy = ForceBumpStrategy.None
     let forceBumpValue = ForceBumpValue.Auto
     let generateReleaseStrategy = GenerateReleaseStrategy.PerScope
     let generateRelease = GenerateRelease.None

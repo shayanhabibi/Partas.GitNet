@@ -1,5 +1,8 @@
-﻿open Spectre.Console.Cli
+﻿open Partas.GitNet.ConfigTypes.GitNetConfig
+open Spectre.Console.Cli
 open Commands
+open FSharp.Data.JsonSchema
+open NJsonSchema
 
 [<EntryPoint>]
 let main argv =
@@ -24,5 +27,21 @@ let main argv =
                 .WithDescription("Compute the collection of tags and commits")
                 |> ignore
             ) |> ignore
+        config.AddBranch("config", fun(branchConfig: IConfigurator<Config.NewConfigSettings>) ->
+            branchConfig.SetDescription "Create a config for GitNet cli"
+            branchConfig.SetDefaultCommand<Config.NewConfig>()
+            ) |> ignore
+        config.AddBranch("run", fun(branchConfig: IConfigurator<GitNet.GitNetSettings>) ->
+            branchConfig.SetDescription "Run GitNet"
+            branchConfig.SetDefaultCommand<GitNet.GitNet>()
+            ) |> ignore
         )
+
+    let schema = typeof<ConfigWrapper.GitNetConfig> |> Generator.Create()
+    schema
+    |> _.ToJson()
+    |> fun content -> System.IO.File.WriteAllText(
+        System.IO.Path.Combine(__SOURCE_DIRECTORY__, "test.json"), content
+        )
+
     app.Run(argv)

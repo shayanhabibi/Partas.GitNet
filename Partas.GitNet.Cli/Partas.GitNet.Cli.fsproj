@@ -11,11 +11,14 @@
         <Compile Include="Spectre\Output.fs" />
         <Compile Include="Commands\Greet.fs" />
         <Compile Include="Commands\Info.fs" />
-        <Compile Include="Program.fs"/>
+        <Compile Include="Commands\Config.fs" />
+        <Compile Include="Commands\GitNet.fs" />
+        <Compile Include="Program.fs" />
     </ItemGroup>
 
     <ItemGroup>
       <PackageReference Include="EluciusFTW.SpectreCoff" Version="0.50.7" />
+      <PackageReference Include="FSharp.Data.JsonSchema" Version="2.1.0" />
       <PackageReference Include="Spectre.Console" Version="0.50.0" />
       <PackageReference Include="Spectre.Console.Cli" Version="0.50.0" />
       <PackageReference Remove="FSharp.Core" />
