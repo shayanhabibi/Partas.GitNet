@@ -237,4 +237,3 @@ type GitNet() =
             content
         |> File.writeString false defaultOutputPath
         0
-    

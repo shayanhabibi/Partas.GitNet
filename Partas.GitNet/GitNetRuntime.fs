@@ -13,12 +13,6 @@ open LibGit2Sharp.FSharp
 /// prevent boiler plate parameters being passed around.
 type GitNetRuntime(config: GitNetConfig) =
     let _repo = Repository.load config.RepositoryPath
-    do
-        if
-            _repo |> Repository.info
-            |> RepositoryInformation.isBare
-        then
-            failwith "GitNet is not compatible with Bare repos yet. Please raise an issue https://github.com/shayanhabibi/Partas.GitNet"
     let githubRemote =
         _repo |> Repository.network
         |> Network.remotes
@@ -38,8 +32,10 @@ type GitNetRuntime(config: GitNetConfig) =
     let cacheTag = cachedStats.Tags.Add >> ignore
     
     let dir =
-        _repo |> Repository.info
-        |> RepositoryInformation.workingDirectory
+        _repo
+        |> Repository.info
+        |> RepositoryInformation.tryWorkingDirectory
+        |> ValueOption.defaultValue config.RepositoryPath
     let writeCommitMessage =
         match config.Output.Formatting with
         | MacroGroupType.EpochAnd(MacroGroupType.ScopePrefix prefixConfig)
@@ -74,6 +70,7 @@ type GitNetRuntime(config: GitNetConfig) =
         | _ ->
             fun _ message -> message
     let disposals = ResizeArray<unit -> unit>()
+    let mutable commitHasBeenMade = false
     member val repo = _repo with get
     member val diff = _repo |> Repository.diff with get
     member val githubUrlFactory =
@@ -96,15 +93,22 @@ type GitNetRuntime(config: GitNetConfig) =
     member this.Disposals = disposals
     member internal this.WriteCommitToMarkdown scope commit =
         writeCommitMessage scope commit
-    member this.CommitChanges(username,email,?message: string, ?date: DateTimeOffset) =
+    member this.CommitChanges(?username,?email,?message: string, ?date: DateTimeOffset, ?appendCommit: bool) =
+        let appendCommit =
+            if commitHasBeenMade then
+                defaultArg appendCommit true
+            else false
+        let username = defaultArg username "GitHub Action"
+        let email = defaultArg email "41898282+github-actions[bot]@users.noreply.github.com"
         let date = defaultArg date DateTimeOffset.Now
         let message = defaultArg message "[skip ci]\n\nGitNet auto file update."
         let signature = Signature(name = username, email = email, ``when`` = date)
         try
         this
             .repo
-            .Commit(message, signature, signature, CommitOptions(AllowEmptyCommit = false))
-        |> ignore        
+            .Commit(message, signature, signature, CommitOptions(AllowEmptyCommit = false, AmendPreviousCommit = appendCommit))
+        |> ignore
+        commitHasBeenMade <- true
         with e ->
             e
             |> printfn "Error while committing changes: %A"

@@ -11,6 +11,26 @@ open Partas.GitNet.RepoCracker
 open Partas.Tools.SepochSemver
 
 type GitNetRuntime with
+    member this.WriteToOutput(content: string) =
+        this.config
+        |> function
+            | Patterns.OutputPath path ->
+                let path = path ""
+                Fake.IO.File.writeString false path content
+                path
+    member this.WriteToOutputAndStage(content: string) =
+        let path = this.WriteToOutput content
+        try
+        this.repo
+        |> Repository.index
+        |> Index.addFile (System.IO.Path.GetRelativePath(this.rootDir, path))
+        with e ->
+            e
+            |> printfn "%A"
+    member this.WriteToOutputAndCommit(content: string) =
+        this.WriteToOutputAndStage content
+        this.CommitChanges()
+        
     member private this.DryRunImpl() =
         let tagCommitCollection = TagCommitCollection.load this
         let render = fromTagCommitCollection this tagCommitCollection
@@ -94,7 +114,9 @@ type GitNetRuntime with
             |> Markdown.ToMd
         bumps,markdownString
     /// Acts upon 'autobump' and other settings
-    member this.Run() =
+    member this.Run(?username: string,?email: string) =
+        let username = defaultArg username "GitHub Action"
+        let email = defaultArg email "41898282+github-actions[bot]@users.noreply.github.com"
         let bumps,content = this.DryRunImpl()
         let matchesRepoBranch = this.repo |> Repository.head |> Branch.name |> (=)
         let autoTaggedSemvers =
@@ -140,7 +162,7 @@ type GitNetRuntime with
                 |> dict
                 , true
                 )
-            this.CommitChanges("GitHub Actions", "noreply@github.com")
+            this.CommitChanges(username, email)
             this.CommitTags(autoTaggedSemvers)
             let result = this.DryRun()
             #if DEBUG
@@ -158,34 +180,37 @@ type GitNetRuntime with
             result
         | _ ->
             bumps, content.Document |> Markdown.ToMd
-
+        |> function
+            | bumps,content ->
+                this.WriteToOutputAndCommit(content) |> ignore
+                bumps,content
 open FSharp.Data
-module Program =
-    [<EntryPoint>]
-    let main args =
-        // let path = @"C:\Users\shaya\RiderProjects\Partas.Solid.Primitives\"
-        // let path = @"C:/Users/shaya/riderprojects/partas.gitnet/tests/partas.gitnet.tests/partas.solid.testground/"
-        // let path = @"C:/Users/shaya/riderprojects/FullPerla/"
-        let path = @"C:/Users/shaya/riderprojects/oxpecker.solid.jitbox/"
-        {
-            GitNetConfig.init true with
-                RepositoryPath = path
-                Output.Ignore =
-                    IgnoreCommit.SkipCi ::
-                    Defaults.ignoreCommits
-                AssemblyFiles = AssemblyFileManagement.Create
-                // Bump.DefaultBumpStrategy = ForceBumpStrategy.All
-        }
-        |> fun config ->
-            let runtime = new GitNetRuntime(config)
-            // let bumps,content = runtime.DryRun()
-            // runtime.WriteAssemblyFiles(bumps)
-            // runtime.StageVersionProjects(bumps)
-            // runtime.CommitChanges("GitHub Actions", "noreply@github.com")
-            let bumps,content = runtime.Run()
-            content
-            |> printfn "%A"
-            bumps
-            |> printfn "%A"
-            
-        0
+// module Program =
+//     [<EntryPoint>]
+//     let main args =
+//         // let path = @"C:\Users\shaya\RiderProjects\Partas.Solid.Primitives\"
+//         // let path = @"C:/Users/shaya/riderprojects/partas.gitnet/tests/partas.gitnet.tests/partas.solid.testground/"
+//         // let path = @"C:/Users/shaya/riderprojects/FullPerla/"
+//         let path = @"C:/Users/shaya/riderprojects/oxpecker.solid.jitbox/"
+//         {
+//             GitNetConfig.init true with
+//                 RepositoryPath = path
+//                 Output.Ignore =
+//                     IgnoreCommit.SkipCi ::
+//                     Defaults.ignoreCommits
+//                 AssemblyFiles = AssemblyFileManagement.Create
+//                 // Bump.DefaultBumpStrategy = ForceBumpStrategy.All
+//         }
+//         |> fun config ->
+//             let runtime = new GitNetRuntime(config)
+//             // let bumps,content = runtime.DryRun()
+//             // runtime.WriteAssemblyFiles(bumps)
+//             // runtime.StageVersionProjects(bumps)
+//             // runtime.CommitChanges("GitHub Actions", "noreply@github.com")
+//             let bumps,content = runtime.Run()
+//             content
+//             |> printfn "%A"
+//             bumps
+//             |> printfn "%A"
+//             
+//         0
