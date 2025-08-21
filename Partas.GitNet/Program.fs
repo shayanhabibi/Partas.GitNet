@@ -158,7 +158,7 @@ type GitNetRuntime with
         match this.config.AssemblyFiles with
         | AssemblyFileManagement.Create
         | AssemblyFileManagement.UpdateIfExists when autoTaggedSemvers |> Array.isEmpty |> not ->
-            this.WriteAssemblyFiles(autoTaggedSemvers)
+            this.WriteAssemblyFiles(autoTaggedSemvers, stageFiles = true)
             this.VersionProjects(
                 autoTaggedSemvers
                 |> Array.choose(function
