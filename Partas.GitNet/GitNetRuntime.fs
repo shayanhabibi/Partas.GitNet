@@ -35,6 +35,12 @@ type GitNetRuntime(config: GitNetConfig) =
         _repo
         |> Repository.info
         |> RepositoryInformation.tryWorkingDirectory
+        |> ValueOption.bind(fun path ->
+            path
+            |> String.filter ((<>) '/')
+            |> String.IsNullOrWhiteSpace
+            |> function true -> ValueNone | _ -> ValueSome path
+            )
         |> ValueOption.defaultValue config.RepositoryPath
     let writeCommitMessage =
         match config.Output.Formatting with

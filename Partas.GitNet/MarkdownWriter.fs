@@ -422,6 +422,10 @@ type WriteResult = {
 }
 
 let writeRendering runtime renderResult =
+    let renderResult = {
+        renderResult with
+            Scopes = renderResult.Scopes |> Array.sortBy _.ScopeName
+    }
     renderResult.Scopes
     |> Seq.choose (Scope.writeScope runtime)
     |> Seq.collect id

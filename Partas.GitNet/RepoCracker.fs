@@ -14,7 +14,8 @@ open Semver
 
 module Projects =
     let private findFsProjs (runtime: GitNetRuntime) =
-        !! $"{runtime.rootDir |> String.trimSlash}/**/*.fsproj"
+        !! $"**/*.fsproj"
+        |> _.SetBaseDirectory(runtime.rootDir)
     let private extractElementsValues elementName: MSBuildProject -> string seq =
         _.Document
             .XPathSelectElements($"//{elementName}")
