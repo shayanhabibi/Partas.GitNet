@@ -130,9 +130,16 @@ type GitNetRuntime with
                             AutoBump = true
                             AutoBumpBranchName = branchName
                             Scope = scope
-                        } when (branchName.IsNone
-                             || branchName.Value |> matchesRepoBranch)
-                             && bumps.ContainsKey(scope.Value) ->
+                        } when (
+                             let branchNameIsFine = branchName
+                                                    |> Option.map matchesRepoBranch
+                                                    |> Option.defaultValue true
+                             let bumpContainsScope =
+                                 match scope with
+                                 | Some key -> bumps.ContainsKey(key)
+                                 | _ -> false
+                             branchNameIsFine && bumpContainsScope
+                        ) ->
                                ValueSome bumps[scope.Value]
                         | _ -> ValueNone
                     )

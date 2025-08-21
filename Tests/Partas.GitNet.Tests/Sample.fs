@@ -16,17 +16,17 @@ let test =
     let path = Files.``Partas.Solid.TestGround``.``.``
     let repo = Repository.load path
     let config = {
-        GitNetConfig.init with
+        GitNetConfig.initFSharp with
             RepositoryPath = path
-            Projects = {
-                ProjectConfig.init with
-                    AutoScope =
+            ProjectType =
+                { Defaults.FSharp.projectFSharpConfig with
+                    AutoScoping =
                         _.Split('.').Last()
                         >> function
                             "ScratchTests" -> None
-                            | scope -> Some scope
-                        
-            }
+                            | scope -> Some scope }
+                |> Some
+                |> ProjectType.FSharp
     }
     let runtime = new GitNetRuntime(config)
     let collection =
