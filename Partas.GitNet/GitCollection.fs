@@ -12,13 +12,41 @@ open Partas.GitNet.RepoCracker
 type CommitSha = CommitSha of string
 [<Struct>]
 type TagSha = TagSha of string
+// TagShas can be duplicates when derived from git tags, as
+// there may be multiple tags on one commit.
+// In this case, we combine the sha key with the tag name.
+[<Struct>]
+type TagShaKey =
+    | Duplicate of sha: TagSha * tagName: string
+    | Unique of sha: TagSha
 [<Struct>]
 type Scope = Scope of string
 
 type CommitSha with member this.Value = let (CommitSha value) = this in value
 type TagSha with member this.Value = let (TagSha value) = this in value
 type Scope with member this.Value = let (Scope value) = this in value
+type TagShaKey with
+    member this.Value =
+        match this with
+        | Duplicate(sha,_)
+        | Unique sha -> sha.Value
 
+module TagShaKey =
+    module Unique =
+        let create = GitNetTag.Git.sha >> TagSha >> Unique
+    module Duplicate =
+        let create gitNetTag =
+            (GitNetTag.Git.sha gitNetTag |> TagSha,
+             GitNetTag.Git.name gitNetTag)
+            |> Duplicate
+    let tagSha: TagShaKey -> TagSha = function
+        | Duplicate(sha,_) | Unique sha -> sha
+    let sha: TagShaKey -> string =
+        _.Value
+    let name = function
+        | Duplicate(_,name) -> ValueSome name
+        | _ -> ValueNone
+    
 module Commit =
     let sha: Commit -> CommitSha = Commit.sha >> CommitSha
 module GitNetTag =
@@ -90,7 +118,7 @@ module OrderedCollection =
     let createDesc<'Source, 'Key, 'Item, 'Comparable when 'Comparable : comparison> keyFunc itemFunc sortBy collection = createImpl<'Source, 'Key, 'Item, 'Comparable> Seq.sortByDescending keyFunc itemFunc sortBy collection
     let inline keyPairs<'Key, 'Value>: OrderedCollection<'Key,'Value> -> ('Key * 'Key) array = _.OrderedKeys >> Array.pairwise
     let inline get key (col: OrderedCollection<_, _>) = col.Get(key)
-type TagCollection = OrderedCollection<TagSha, GitNetTag>
+type TagCollection = OrderedCollection<TagShaKey, GitNetTag>
 type CommitCollection = OrderedCollection<CommitSha, Commit>
 module TagCollection =
     type GetCommitsResponse = {
@@ -98,9 +126,9 @@ module TagCollection =
         TagCommits: FrozenDictionary<TagSha, CommitSha FrozenSet>
     }
     type private TagPositions =
-        | First of TagSha
-        | Middle of TagSha * TagSha
-        | End of TagSha
+        | First of TagShaKey
+        | Middle of TagShaKey * TagShaKey
+        | End of TagShaKey
     type private TagPositionCommits =
         | Unreleased of FrozenSet<CommitSha>
         | TagCommits of TagSha * FrozenSet<CommitSha>
@@ -113,7 +141,7 @@ module TagCollection =
             |> Unreleased
         | Middle (oldTag, newTag) ->
             let (>->) (appl1,appl2) func = (func appl1, func appl2)
-            let key = newTag
+            let key = newTag |> TagShaKey.tagSha
             let value =
                 (oldTag, newTag)
                 >-> collection.Get
@@ -128,7 +156,7 @@ module TagCollection =
             |> Seq.map Commit.sha
             |> toFrozenSet
             |> fun value ->
-                tag,value
+                tag |> TagShaKey.tagSha,value
             |> TagCommits
     let private extractTagCommitPairsIntoPairs (tagCommits: TagPositionCommits array) =
         tagCommits
@@ -139,6 +167,7 @@ module TagCollection =
             )
     let private getTagPositionsFromCollection (collection: TagCollection) =
         collection.OrderedKeys
+        |> Array.distinctBy TagShaKey.sha
         |> function
         | [||] -> [||], None
         | [| tag |] -> [| First tag |], Some (End tag) 
@@ -178,21 +207,39 @@ module TagCollection =
                     |> extractTagCommitPairsIntoPairs
                     |> toFrozenDictionary
             }
-        
     let load (runtime: GitNetRuntime) =
-        let sortedTags =
+        let allTags =
             Repository.tags runtime.repo
+            |> Seq.map GitNetTag.create
+        let distinctShaTags =
+            allTags |> Seq.distinctBy GitNetTag.Git.sha
+        let duplicateShaTags =
+            allTags
+            |> Seq.except distinctShaTags
+        let tags =
+            let distinctShaGitNetTags =
+                distinctShaTags |> Seq.map (GitNetTag.Git.sha >> Unique)
+                |> Seq.zip distinctShaTags
+            let duplicateShaGitNetTags =
+                duplicateShaTags |> Seq.map GitNetTag.Git.name
+                |> Seq.zip (duplicateShaTags |> Seq.map GitNetTag.Git.sha)
+                |> Seq.map Duplicate
+                |> Seq.zip duplicateShaTags
+            distinctShaGitNetTags
+            |> Seq.append duplicateShaGitNetTags
+        let sortedTags =
+            tags
             |> Seq.sortBy (
-                Tag.target
+                fst >> GitNetTag.git
+                >> Tag.target
                 >> GitObject.tryPeel<LibGit2Sharp.Commit>
                 >> ValueOption.map (Commit.committer >> Signature.date)
                 >> ValueOption.defaultValue DateTimeOffset.MaxValue
                 )
-            |> Seq.map GitNetTag.create
             |> Seq.toArray
         {
-            OrderedKeys = Array.map GitNetTag.Git.sha sortedTags
-            KeyDictionary = sortedTags.ToFrozenDictionary(GitNetTag.Git.sha, id)
+            OrderedKeys = Array.map snd sortedTags
+            KeyDictionary = sortedTags.ToFrozenDictionary(snd, fst)
         }
 module CommitCollection =
     let load (runtime: GitNetRuntime)=
@@ -302,7 +349,7 @@ module TagCommitCollection =
             collection.TagCollection.OrderedKeys[lowerIdx + 1..higherIdx].AsSpan()
         let shaCollection = HashSet(20)
         for sha in shas do
-            shaCollection.UnionWith(tagCommitLookup sha collection)
+            shaCollection.UnionWith(tagCommitLookup (sha |> TagShaKey.tagSha) collection)
         shaCollection
     let getCommitsBetween tag1 tag2 collection =
         let idx1,idx2 = Unsafe.findIndexes tag1 tag2 collection.TagCollection.OrderedKeys

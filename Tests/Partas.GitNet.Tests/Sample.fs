@@ -108,12 +108,12 @@ let test =
                 select gitTag.Key
                 exactlyOne
             }
-            |> Flip.Expect.equal sha (TagSha sha)
+            |> Flip.Expect.equal sha (TagSha sha |> Unique)
         test "Tags are arranged from lowest to highest (most recent)" {
             collection.TagCollection.OrderedKeys
             |> Flip.Expect.sequenceContainsOrder
                 "Tags should be arranged correctly"
-                (tagShaPairs |> Seq.map (snd >> TagSha))
+                (tagShaPairs |> Seq.map (snd >> TagSha >> Unique))
         }
         testTheory "Tag commits include themselves" tagShaPairs <| fun (tag,sha) ->
             collection.TagCommits[TagSha sha]
@@ -132,7 +132,7 @@ let test =
                         tagShaPairs
                         |> List.find (fst >> (=) "1.2.1")
                         |> snd
-                        |> TagSha
+                        |> TagSha |> Unique
                         )
                 Flip.Expect.hasLength "" 0 collection
             }
@@ -141,10 +141,10 @@ let test =
                 let tagSha1,tagSha2 =
                     tagShaPairs
                     |> List.find (fst >> (=) "1.2.0")
-                    |> (snd >> TagSha),
+                    |> (snd >> TagSha >> Unique),
                     tagShaPairs
                     |> List.find (fst >> (=) "1.2.1")
-                    |> (snd >> TagSha)
+                    |> (snd >> TagSha >> Unique)
                     
                 collection
                 |> TagCommitCollection.getCommitsBetween tagSha1 tagSha2
@@ -170,11 +170,13 @@ let test =
                     |> List.find (fst >> (=) "0.2.1")
                     |> snd
                     |> TagSha
+                    |> Unique
                 let tag025 =
                     tagShaPairs
                     |> List.find (fst >> (=) "0.2.5")
                     |> snd
                     |> TagSha
+                    |> Unique
                 collection
                 |> TagCommitCollection.getCommitsBetween tag021 tag025
                 |> Seq.sort

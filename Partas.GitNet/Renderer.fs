@@ -48,17 +48,17 @@ module private PreRenderPhase =
         /// This should be compared to the first commit to collect the commits for
         /// the first tag.
         /// </summary>
-        | FirstTag of TagSha
+        | FirstTag of TagShaKey
         /// <summary>
         /// A pair of tags in the collection that are used as the upper and lower bounds
         /// when collecting the commits for the upper boundary tag using Gits Diffing ops.
         /// </summary>
-        | PairTag of TagSha * TagSha
+        | PairTag of TagShaKey * TagShaKey
         /// <summary>
         /// The last tag in the collection that is used to collect the unreleased commits
         /// since the aforementioned tag.
         /// </summary>
-        | LastTag of TagSha
+        | LastTag of TagShaKey
         member inline this.PermuteToFirstTag =
             match this with
             | PairTag(tag,_) -> FirstTag tag

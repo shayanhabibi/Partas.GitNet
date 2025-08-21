@@ -12,8 +12,8 @@
         <PackageTags>Partas;Semver;Git;AutoVersioning;CI;F#;FSharp;Automation;DevOps</PackageTags>
         <Authors>Shayan Habibi</Authors>
         <Copyright>Copyright © Shayan Habibi 2025</Copyright>
-        <Version>0.0.7</Version>
-        <PackageVersion>0.0.7</PackageVersion>
+        <Version>0.0.8</Version>
+        <PackageVersion>0.0.8</PackageVersion>
         <PackageReleaseNotes>ALPHA release</PackageReleaseNotes>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <PackageReadmeFile>README.md</PackageReadmeFile>
