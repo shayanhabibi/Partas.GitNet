@@ -14,6 +14,7 @@
         <Copyright>Copyright (c) Shayan Habibi 2025</Copyright>
         <Version>0.4.1</Version>
         <PackageVersion>0.4.1</PackageVersion>
+        <GitNetInitialVersion>0.4.2</GitNetInitialVersion>
         <PackageReleaseNotes>Add `_.ToEncodedString()` for urls.</PackageReleaseNotes>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>

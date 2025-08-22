@@ -1,7 +1,13 @@
 ﻿module Partas.GitNet.Spec
 
-let [<Literal>] dateFormat = "yyyy-M-dd"
+/// <summary>
+/// The string format used in printing.
+/// </summary>
+let [<Literal>] dateFormat = "yyyy-MM-dd"
 
+/// <summary>
+/// Literals relating to attributes in the project files that are relevant to us.
+/// </summary>
 module MSBuild =
     /// Explicitly sets the scope value for a FSProject.
     [<Literal>]
@@ -24,5 +30,4 @@ module MSBuild =
     /// Explicitly declare whether to automatically
     /// update assembly files for the project.
     [<Literal>]
-    let AutoUpdateAssemblyFiles = "GitNetAutoUpdateAssemblyFiles"
-    
+    let AutoUpdateAssemblyFiles = "GitNetAutoUpdateAssemblyFiles"        

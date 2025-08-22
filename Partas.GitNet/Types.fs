@@ -109,7 +109,7 @@ type CommitGroup() =
     abstract CountOnly: bool
     
     default this.Position = None
-    default this.HeadingLevel = 3
+    default this.HeadingLevel = 4
     default this.Prelude = None
     default this.Postfix = None
     default this.CountOnly = false

@@ -58,5 +58,6 @@ type UrlFactory(urlRoot: string) =
         this.Create(tag |> GitNetTag.git, tag2 |> GitNetTag.git)
     member this.CreateCommit(sha: string) =
         sha |> sprintf "%s%s" commitBase
-        
+    member this.CreateAuthor(author: string) =
+        author |> sprintf "%s/%s" urlRoot
     new (ghRemote: GitHubRemote) = UrlFactory(urlRoot ghRemote)

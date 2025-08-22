@@ -238,6 +238,7 @@ module Render =
         TagUrl: string voption
         TagDate: string voption
         Commits: FrozenDictionary<CommitGroup,Commit list>
+        CommitCount: int
     }
     /// <summary>
     /// A rendered scope, of a repository.
@@ -247,6 +248,7 @@ module Render =
         ScopeTags: Tag list
         ScopeUnreleasedUrl: string voption
         ScopeUnreleased: Commit list
+        ScopeCommitCount: int
     }
     type BumpResult =
         | NoHistory of BumpType
@@ -287,6 +289,17 @@ module Render =
     /// </summary>
     module Tag =
         let fromGitNetTagWithCommits (runtime: GitNetRuntime) commits (tag: GitNetTag) (refTag: GitNetTag)=
+            let computedCommits =
+                commits
+                |> Seq.filter (runtime.config.Output.ComputeCommitFilter(tag))
+                |> runtime.CategoriseCommits
+                |> fun commits -> query {
+                    for commit,grouping in commits do
+                    groupValBy commit (grouping |> Option.defaultValue runtime.config.Output.DefaultUnmatchedGroup)
+                }
+                |> _.ToFrozenDictionary(
+                    _.Key,
+                    Seq.map Commit.fromGitNetCommit >> Seq.toList)
             {
                 TagName =
                     tag
@@ -307,17 +320,10 @@ module Render =
                     |> ValueSome
                     with e ->
                         ValueNone
-                Commits =
-                    commits
-                    |> Seq.filter (runtime.config.Output.ComputeCommitFilter(tag))
-                    |> runtime.CategoriseCommits
-                    |> fun commits -> query {
-                        for commit,grouping in commits do
-                        groupValBy commit (grouping |> Option.defaultValue runtime.config.Output.DefaultUnmatchedGroup)
-                    }
-                    |> _.ToFrozenDictionary(
-                        _.Key,
-                        Seq.map Commit.fromGitNetCommit >> Seq.toList)
+                Commits = computedCommits
+                CommitCount =
+                    computedCommits.Values
+                    |> Seq.sumBy _.Length
                     
             }
     /// <summary>
@@ -366,24 +372,30 @@ module Render =
         let fromPreRenderedCollectionEntry config (scopeName: GitCollection.Scope, entries: (GitNetTag voption * GitNetCommit array) array) =
             let unreleasedCommits, taggedCommits =
                 entries |> partitionUnreleased 
+            let scopeTags =
+                if taggedCommits |> Array.isEmpty
+                then []
+                else
+                taggedCommits
+                |> Array.rev
+                |> Array.insertAt 0 taggedCommits[0]
+                |> Array.pairwise
+                |> Array.map(
+                    fun ((refTag,_), (tag, commits)) ->
+                        Tag.fromGitNetTagWithCommits config commits tag refTag
+                    )
+                |> Array.rev
+                |> Array.toList
+            let unreleasedCommits =
+                unreleasedCommits
+                |> Array.filter (config.config.Output.ComputeCommitFilter())
+                |> Array.map Commit.fromGitNetCommit
+                |> Array.toList
             {
                 ScopeName =
                     scopeName.Value
                     |> ValueSome
-                ScopeTags =
-                    if taggedCommits |> Array.isEmpty
-                    then []
-                    else
-                    taggedCommits
-                    |> Array.rev
-                    |> Array.insertAt 0 taggedCommits[0]
-                    |> Array.pairwise
-                    |> Array.map(
-                        fun ((refTag,_), (tag, commits)) ->
-                            Tag.fromGitNetTagWithCommits config commits tag refTag
-                        )
-                    |> Array.rev
-                    |> Array.toList
+                ScopeTags = scopeTags
                 ScopeUnreleasedUrl =
                     taggedCommits
                     |> Array.tryHead
@@ -399,11 +411,13 @@ module Render =
                         )
                         )
                     |> ValueOption.ofOption
-                ScopeUnreleased =
-                    unreleasedCommits
-                    |> Array.filter (config.config.Output.ComputeCommitFilter())
-                    |> Array.map Commit.fromGitNetCommit
-                    |> Array.toList
+                ScopeUnreleased = unreleasedCommits
+                ScopeCommitCount = List.sum [
+                    unreleasedCommits.Length
+                    scopeTags
+                    |> List.sumBy _.CommitCount
+                ]
+                    
             }
     let private auxResults runtime (collection: (GitCollection.Scope * (GitNetTag voption * GitNetCommit[])[]) seq) =
         let checkBumpInScope:

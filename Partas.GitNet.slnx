@@ -1,12 +1,14 @@
 ﻿<Solution>
   <Folder Name="/ci/">
-    <File Path=".github/**/*" />
+    <Project Path="Build.fsproj" Type="Classic F#" />
+    <File Path=".github/workflows/ci.yml" />
   </Folder>
   <Folder Name="/misc/">
     <File Path="README.md" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="Partas.GitNet.Cli\Partas.GitNet.Cli.fsproj" Type="Classic F#" />
+    <Project Path="Partas.GitNet.Markdown\Partas.GitNet.Markdown.fsproj" Type="Classic F#" />
     <Project Path="Partas.GitNet\Partas.GitNet.fsproj" Type="Classic F#" />
     <Project Path="Partas.Tools.SepochSemver\Partas.Tools.SepochSemver.fsproj" Type="Classic F#" />
   </Folder>

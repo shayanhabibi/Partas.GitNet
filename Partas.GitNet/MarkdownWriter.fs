@@ -6,122 +6,68 @@ open System.Collections.Generic
 open FSharp.Formatting.Markdown
 open Fake.Core
 open Partas.GitNet
-
-[<AutoOpen>]
-module internal CEs =
-    type MarkdownBuilder() =
-        let mutable paragraphs = []
-        let addParagraph (value: MarkdownParagraph) = paragraphs <- value :: paragraphs
-        member _.Zero(): unit = ()
-        member _.Yield(value: string): unit =
-            addParagraph <| Paragraph([Literal(value, None)], None)
-        member _.Combine(_: unit, _: unit) = ()
-        member _.Delay f = f()
-        member _.Run _ = paragraphs |> List.rev
-        member _.Yield(para: MarkdownParagraph) = addParagraph para
-
-    type MarkdownParagraphBuilder(state: MarkdownSpan list) =
-        let mutable spans = state |> List.rev
-        member this.AddSpan(span: MarkdownSpan) =
-            spans <- span :: spans
-        member this.Spans = spans |> List.rev
-        member inline this.Yield(span: MarkdownSpan) =
-            span |> this.AddSpan
-        member inline this.Yield(text: string) =
-            Literal(text,None) |> this.AddSpan
-        member inline this.YieldFrom(values: string seq) =
-            values |> Seq.iter this.Yield
-        member inline this.YieldFrom(values: MarkdownSpan seq) =
-            values |> Seq.iter this.Yield
-        member inline this.Combine(_:unit,_:unit) = ()
-        member inline this.Delay f = f()
-        member inline this.Zero() = ()
-
-    type ParagraphBuilder(state: MarkdownSpan list) =
-        inherit MarkdownParagraphBuilder(state)
-        member this.Run _ = Paragraph(base.Spans, None)
-
-    type HeadingBuilder(state: MarkdownSpan list, heading: int) =
-        inherit MarkdownParagraphBuilder(state)
-        member this.Run _ = Heading(heading, base.Spans, None)
-    type SpanBuilder(state: MarkdownSpan list) =
-        inherit MarkdownParagraphBuilder(state)
-        member this.Run _ = Span(base.Spans, None)
-    type CodeBlockBuilder(language: string) =
-        let mutable code: string list = []
-        let mutable language = language
-        let mutable fence = ValueNone
-        let mutable ignoredLine = ValueNone
-        let mutable executionCount = ValueNone
-        member this.AddCodeLine(value: string) = code <- value :: code
-        [<CustomOperation "language">]
-        member this.LanguageOp(_, value: string) = language <- value
-        [<CustomOperation "fence">]
-        member this.FenceOp(_, value: string) =
-            fence <- value |> ValueOption.ofObj
-        [<CustomOperation "ignoredLine">]
-        member this.IgnoredLineOp(_, value: string) =
-            ignoredLine <- value |> ValueOption.ofObj
-        [<CustomOperation "executionCount">]
-        member this.ExecutionCountOp(_, value: int) =
-            executionCount <- ValueSome value
-        member this.Delay(f) = f()
-        member this.Combine(_,_) = ()
-        member this.Yield(value: string) = this.AddCodeLine value
-        member this.Run _ =
-            let codeBlock =
-                code |> List.rev
-                |> String.concat "\n"
-            let conv = Option.ofValueOption
-            CodeBlock(
-                codeBlock,
-                conv executionCount,
-                conv fence,
-                language,
-                ignoredLine |> ValueOption.defaultValue "",
-                None
-            )
-
-    let code language = CodeBlockBuilder(language)
-    let markdown () = MarkdownBuilder()
-    let para state = ParagraphBuilder(state)
-    let heading level state = HeadingBuilder(state, level)
-
-module internal Md =
-    let paragraphComment text = MarkdownParagraph.InlineHtmlBlock($"<!-- {text} -->", None, None)
-    let literal text = MarkdownSpan.Literal(text,None)
-    let aLink url =
-        MarkdownSpan.AnchorLink(url, None)
-    let iLink title =
-        MarkdownSpan.IndirectLink(
-            [ MarkdownSpan.Literal(title, None) ],
-            title,title,None
-            )
-    let dLink title url =
-        MarkdownSpan.DirectLink(
-            [ MarkdownSpan.Literal(title, None) ],
-            url, Some title, None
-        )
-    let unorderedList items =
-        MarkdownParagraph.ListBlock(MarkdownListKind.Unordered, items, None)
-    let orderedList items =
-        MarkdownParagraph.ListBlock(MarkdownListKind.Ordered, items, None)
-    let rawHtml value = MarkdownParagraph.InlineHtmlBlock(value, None, None)
-    let para items = MarkdownParagraph.Paragraph(items, None)
-
-let makeHeader (scopes: (string * string) array) =
-    $"""
-# RELEASE NOTES
+open Partas.GitNet.Markdown
+module Render = Renderer.Render
+open Render
+let makeHeader (scopes: (string * string * Tag option * int) array) = [
+    Markdown.span {
+    $"""# RELEASE NOTES
 
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to a flavored version of [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+and this project adheres to a flavor of [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
+which includes [Scopes and Epochs](#epoch-scoped-semver).
+
+---
+
+"""
+    }
+    if scopes.Length > 1 then
+        Markdown.h4 { "Quick Navigation" }
+        Markdown.table {
+            Markdown.table.headers {
+                Markdown.bold { "Scope" }
+                "Current Release"
+                "Commit Count"
+            }
+            yield!
+                scopes
+                |> Array.toList
+                |> List.map (fun (scope,link,tag,count) ->
+                    Markdown.table.row {
+                        Markdown.directLink link {
+                            Markdown.bold { scope }
+                        }
+                        match tag with
+                        | Some { TagUrl = ValueSome url; TagName = name } ->
+                            Markdown.directLink url { name }
+                        | Some { TagName = name } -> name
+                        | None -> "Unreleased"
+                        Markdown.span {
+                            if count = 0 then
+                                "None yet!"
+                            else
+                                $"{count} commits"
+                        }
+                    }
+                    )
+            [
+                MarkdownColumnAlignment.AlignLeft
+                MarkdownColumnAlignment.AlignCenter
+                MarkdownColumnAlignment.AlignCenter
+            ]
+        }
+    
+]
+let makeFooter = Markdown.span {
+    """
+---
 
 <details>
-<summary>See the spec for this SemVer flavor.</summary>
+<summary>Read more about this SemVer flavor</summary>
 
-<h3>Epoch Scoped Semver</h3>
+### Epoch Scoped SemVer
 
 This flavor adds an optional marketable value called an `EPOCH`.
 There is also an optional disambiguating `SCOPE` identifier for delineating tags for packages in a mono repo.
@@ -149,7 +95,7 @@ An Epoch/Scope (*Sepoch*) is an OPTIONAL prefix to a typical SemVer.
 would be overly restrictive and yield little value since we can delineate and
 earlier EPOCH from a later EPOCH by the SemVers.
 
-**Examples:**
+#### Example
 
 ```mermaid
 gitGraph
@@ -170,9 +116,10 @@ commit
 checkout main
 merge develop tag: "_BRAVO_4.0.0" type: HIGHLIGHT
 ```
-_While there are breaking changes between versions 1 to 3, we expect that it is less than
+
+*While there are breaking changes between versions 1 to 3, we expect that it is less than
 from 3 to 4. We expect the API surface would change more dramatically, or there is some other significant
-milestone improvement, in the change from version 3 epoch ALPS to version 4 epoch BRAVO._
+milestone improvement, in the change from version 3 epoch ALPS to version 4 epoch BRAVO.*
 
 ```
 _WILDLANDS(Core)_ 4.2.0
@@ -180,101 +127,18 @@ _WILDLANDS(Engine)_ 0.5.3
 _DELTA(Core)_ 5.0.0
 _DELTA(Engine)_ 0.5.3
 ```
-_Cannot be compared to `Core` versions. Both Engine versions are equal, we can identify that
-the ecosystems marketed change does not change the Engine packages API_
+
+*Cannot be compared to `Core` versions. Both Engine versions are equal, we can identify that
+the ecosystems marketed change does not change the Engine packages API*
 
 </details>
-{
-    if scopes.Length > 1 then
-        [ "<details>"
-          "<summary>Quick navigation</summary>"
-          "<h3>Scopes:</h3>"
-          "<ul>"
-          for scope,link in scopes do
-              $"<li><a href=\"{link}\">{scope}</a></li>"
-          "</ul>"
-          "</details>" ] |> String.concat "\n"
-    else ""
-}
-""" |> Markdown.Parse |> _.Paragraphs
-
-let makeFooter =
-    """
 
 <!-- generated by Partas.GitNet -->
-""" |> Markdown.Parse |> _.Paragraphs
+"""
+}
 
-module Mermaid =
-    let [<Literal>] kanbanTicketStub = "#TICKET#"
-    // if ticketUrl.IsSome then
-    //     "---"
-    //     "config:"
-    //     "   kanban:"
-    //     $"       ticketBaseUrl: '{ticketUrl.IsSome}'"
-    //     "---"
-    /// <summary>
-    /// NOT THREAD SAFE.
-    /// </summary>
-    type GitGraphWriter(?mainBranchName: string, ?verticalOrientation: bool) =
-        let mutable currentBranch: string = defaultArg mainBranchName "main"
-        let branches: ResizeArray<string> = ResizeArray([currentBranch])
-        let entries = ResizeArray([
-            if mainBranchName.IsSome then
-                "---"
-                "config:"
-                "   gitGraph:"
-                $"       mainBranchName: '{mainBranchName.Value}'"
-                "---"
-            if verticalOrientation.IsSome && verticalOrientation.Value then
-                "gitGraph TB:"
-            else "gitGraph"
-        ])
-        let checkoutBranch branch =
-            let writeCheckout (branch: string) =
-                entries.Add($"checkout {branch}")
-            let writeBranch (branch: string) =
-                entries.Add($"branch {branch}")
-            if
-                branch <> currentBranch
-                && not <| branches.Contains(branch)
-            then
-                currentBranch <- branch
-                branches.Add branch
-                writeBranch branch
-            elif
-                branch <> currentBranch
-            then
-                currentBranch <- branch
-                writeCheckout branch
-        let writeMerge branch =
-            entries.Add($"merge {branch}")
-        let writeMergeWithTag branch tag =
-            writeMerge $"{branch} tag: \"{tag}\""
-        member this.CommitToBranch (branch, commit: GitNetCommit) =
-            checkoutBranch branch
-            commit
-        member this.Commit (commit: Types.GitNetCommit) =
-            commit
-        member this.EmptyCommit () =
-            entries.Add("commit")
-        member this.EmptyCommits (count: int) =
-            for _ in [0..count] do
-                entries.Add("commit")
-        member this.MergeBranch (tooBranch, fromBranch) =
-            checkoutBranch tooBranch
-            writeMerge fromBranch
-        member this.Render(?withCodeBlock: bool) =
-            let withCodeBlock = defaultArg withCodeBlock false
-            [
-                if withCodeBlock then
-                    "```mermaid"
-                yield! entries
-                if withCodeBlock then
-                    "```"
-            ]
-            |> String.concat "\n"
-module Render = Renderer.Render
-open Render
+
+let private dLink (content: string) link = Markdown.directLink link { content } 
 module Commit =
     let writeCommit (runtime: GitNetRuntime) (scope: Scope) (commit: Commit) =
         // TODO - first time commit
@@ -282,50 +146,52 @@ module Commit =
             runtime.githubUrlFactory
             |> Option.map (
                 _.CreateCommit(commit.CommitSha)
-                // todo - ilink
-                >> Md.dLink (commit.CommitSha.Substring(0, 5))
+                >> dLink (commit.CommitSha.Substring(0, 5) |> (+) "#")
                 )
             |> Option.defaultValue(
                 commit.CommitSha.Substring(0,5)
-                |> Md.literal)
+                |> Markdown.literal
+                )
         let commitMsg =
             // We have pre computed the function in the runtime
             runtime.WriteCommitToMarkdown
                 (scope.ScopeName |> ValueOption.toOption)
                 commit.Message
-        para [] {
+        Markdown.para {
             commitMsg
-            " - "
-            commit.CommitAuthor
-            "@"
+            " by "
+            match runtime.githubUrlFactory with
+            | Some factory ->
+                let link = factory.CreateAuthor(commit.CommitAuthor)
+                Markdown.directLink link { "@"; commit.CommitAuthor }
+            | None ->
+                $"@{commit.CommitAuthor}"
+            " with "
             commitSha
         }
 module Tag =
     type Error = Error
     let writeTitle (tag: Tag) =
-        let tagName =
+        Markdown.h3 {
             match tag.TagUrl with
             | ValueSome url ->
-                // todo ilink
-                Md.dLink tag.TagName url
+                dLink tag.TagName url
             | ValueNone ->
-                Md.literal tag.TagName
-        heading 2 [] {
-            tagName
+                tag.TagName
             match tag.TagDate with
             | ValueSome date ->
                 $" - ({date})"
-            | _ -> ()
+            | _ -> ""
         }
     let writeCommitGroups runtime scope (tag: Tag) =
         let writeGroup (group: KeyValuePair<CommitGroup, Commit list>) =
             let group = group.Key
             [
-              heading group.HeadingLevel [] {
+              Markdown.h group.HeadingLevel {
                   match group.Position with
                   | Some pos ->
                       $"<!-- {pos} --> "
-                  | _ -> ()
+                  | _ -> ""
                   group.Title
               }
               match group.Prelude with
@@ -339,18 +205,19 @@ module Tag =
         |> Seq.sortBy _.Key.Position
         |> Seq.map(fun group ->
             let title = writeGroup group
+            let unorderedList content = MarkdownParagraph.ListBlock(MarkdownListKind.Unordered, content, None)
             let commits =
                 group.Value
                 |> List.map (Commit.writeCommit runtime scope >> List.singleton)
-                |> Md.unorderedList
+                |> unorderedList
 
             [
                 yield! title
                 if group.Key.CountOnly
                 then
-                    Md.para [
-                        Md.literal $"Number of commits: {group.Value.Length}"
-                    ]
+                    Markdown.para {
+                        $"Number of commits: {group.Value.Length}"
+                    }
                 else commits
                 match group.Key.Postfix with
                 | Some postfix ->
@@ -378,17 +245,16 @@ module Scope =
     let writeTitle scope =
         match scope.ScopeName with
         | ValueSome scopeName ->
-            heading 1 [] { scopeName }
+            Markdown.h1 { scopeName }
             |> Ok
         | _ ->
             Error Error.NoScope
     let writeUnreleased runtime scope =
         let heading =
-            heading 2 [] {
+            Markdown.h3 {
                 match scope.ScopeUnreleasedUrl with
                 | ValueSome url ->
-                    // todo - ilink
-                    Md.dLink "UNRELEASED" url
+                    dLink "UNRELEASED" url
                 | ValueNone ->
                     "UNRELEASED"
             }
@@ -397,7 +263,7 @@ module Scope =
             scope.ScopeUnreleased
             |> List.map (Commit.writeCommit runtime scope)
             |> List.map List.singleton
-            |> Md.unorderedList
+            |> fun content -> MarkdownParagraph.ListBlock(MarkdownListKind.Unordered, content, None)
         ]
     let writeTags runtime (scope: Scope) =
         scope.ScopeTags
@@ -406,12 +272,21 @@ module Scope =
 
     let writeScope runtime scope =
         match writeTitle scope with
+        | Ok title when scope.ScopeCommitCount = 0 ->
+            [
+                title
+                Markdown.para { "No commits at this time." }
+            ] |> Some
         | Ok title ->
             [
                 title
                 yield! writeUnreleased runtime scope
                 yield! writeTags runtime scope
-                MarkdownParagraph.HorizontalRule('-', None)
+                Markdown.span {
+                    "<div align=\"right\"><a href=\"#quick-navigation\">(back to top)</a></div>"
+                    br
+                }
+                Markdown.ruler
             ]
             |> Some
         | Error _ -> None
@@ -424,7 +299,13 @@ type WriteResult = {
 let writeRendering runtime renderResult =
     let renderResult = {
         renderResult with
-            Scopes = renderResult.Scopes |> Array.sortBy _.ScopeName
+            Scopes =
+                renderResult.Scopes
+                |> Array.sortBy (function
+                    | { ScopeName = ValueSome name; ScopeCommitCount = n } when n > 0 -> name
+                    | { ScopeName = ValueSome name } -> $"ZZZZ{name}"
+                    | scope -> scope.ScopeName |> ValueOption.defaultValue null
+                    )
     }
     renderResult.Scopes
     |> Seq.choose (Scope.writeScope runtime)
@@ -433,7 +314,7 @@ let writeRendering runtime renderResult =
     |> fun paras ->
         let paras =
             [
-                makeHeader (
+                yield! makeHeader (
                     renderResult.Scopes
                     |> Array.filter _.ScopeName.IsSome
                     |> Array.map (fun scope ->
@@ -443,14 +324,17 @@ let writeRendering runtime renderResult =
                                 (function ' ' -> true | c -> Char.IsAsciiLetter c)
                             >> _.Replace(' ', '-')
                             >> String.toLower
-                            >> sprintf "#%s"
-                        scope.ScopeName.Value,makeLinkUrl scope
+                            >> sprintf "#%s"                            
+                        scope.ScopeName.Value,
+                        makeLinkUrl scope,
+                        scope.ScopeTags |> List.tryHead,
+                        scope.ScopeCommitCount
                         )
                     )
-                [ MarkdownParagraph.HorizontalRule('-', None) ]
-                paras
+                Markdown.ruler
+                yield! paras
                 makeFooter
-            ] |> List.concat
+            ]
         MarkdownDocument(paras, dict [])
     |> fun doc ->
         {
