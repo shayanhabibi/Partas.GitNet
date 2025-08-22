@@ -1,4 +1,5 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
@@ -12,8 +13,8 @@
         <PackageTags>Partas;Semver;Epoch;Scope;Sepoch;F#;FSharp</PackageTags>
         <Authors>Shayan Habibi</Authors>
         <Copyright>Copyright (c) Shayan Habibi 2025</Copyright>
-        <Version>0.4.1</Version>
-        <PackageVersion>0.4.1</PackageVersion>
+        <Version>0.4.2</Version>
+        <PackageVersion>0.4.2</PackageVersion>
         <GitNetInitialVersion>0.4.2</GitNetInitialVersion>
         <PackageReleaseNotes>Add `_.ToEncodedString()` for urls.</PackageReleaseNotes>
         <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -22,8 +23,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Compile Include="Program.fs"/>
-        <None Include="../README.md" Pack="true" PackagePath="\" >
+        <Compile Include="Program.fs" />
+        <None Include="../README.md" Pack="true" PackagePath="\">
             <Link>Public/README.md</Link>
         </None>
         <None Include="..\public\Partas_d00b_00a icon.png">

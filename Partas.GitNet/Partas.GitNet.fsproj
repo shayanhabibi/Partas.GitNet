@@ -1,4 +1,5 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <PackageId>Partas.GitNet</PackageId>
@@ -12,8 +13,8 @@
         <PackageTags>Partas;Semver;Git;AutoVersioning;CI;F#;FSharp;Automation;DevOps</PackageTags>
         <Authors>Shayan Habibi</Authors>
         <Copyright>Copyright © Shayan Habibi 2025</Copyright>
-        <Version>0.0.9</Version>
-        <PackageVersion>0.0.9</PackageVersion>
+        <Version>0.1.0</Version>
+        <PackageVersion>0.1.0</PackageVersion>
         <PackageReleaseNotes>ALPHA release</PackageReleaseNotes>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -21,7 +22,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <None Include="../README.md" Pack="true" PackagePath="\" >
+        <None Include="../README.md" Pack="true" PackagePath="\">
             <Link>Public/README.md</Link>
         </None>
         <None Include="..\public\Partas_d00b_00a icon.png">
