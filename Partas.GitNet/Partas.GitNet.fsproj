@@ -15,7 +15,6 @@
         <Copyright>Copyright © Shayan Habibi 2025</Copyright>
         <Version>0.1.0</Version>
         <PackageVersion>0.1.0</PackageVersion>
-        <PackageReleaseNotes>ALPHA release</PackageReleaseNotes>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageIcon>Partas_d00b_00a icon.png</PackageIcon>
