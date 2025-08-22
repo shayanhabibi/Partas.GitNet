@@ -13,7 +13,7 @@ which includes [Scopes and Epochs](#epoch-scoped-semver).
 
 **Scope** | Current Release | Commit Count
 :--- | :---: | :---:
-[**SepochSemver**](#sepochsemver) | [0.4.2](https://github.com/shayanhabibi/Partas.GitNet/commit/b15e1aa40da98683e5e84b52b386219df71c512d) | 3 commits
+[**SepochSemver**](#sepochsemver) | [0.5.0](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28SepochSemver%29_0.4.2..._%28SepochSemver%29_0.5.0) | 3 commits
 [**GitNet**](#gitnet) | [0.1.0](https://github.com/shayanhabibi/Partas.GitNet/commit/b15e1aa40da98683e5e84b52b386219df71c512d) | None yet!
 
 
@@ -21,15 +21,21 @@ which includes [Scopes and Epochs](#epoch-scoped-semver).
 
 # SepochSemver
 
-### [UNRELEASED](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28SepochSemver%29_0.4.2...HEAD)
+### [UNRELEASED](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28SepochSemver%29_0.5.0...HEAD)
+
+### [0.5.0](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28SepochSemver%29_0.4.2..._%28SepochSemver%29_0.5.0) - (2025-08-22)
+
+#### <!-- 1 --> Added
 
 * improve output formatting and add commit counts by [@cabboose](https://github.com/shayanhabibi/Partas.GitNet/cabboose) with [#b7fc9](https://github.com/shayanhabibi/Partas.GitNet/commit/b7fc9d345b01f23044076bde43da205e13d7aa81)
   
 
-* Init by [@cabboose](https://github.com/shayanhabibi/Partas.GitNet/cabboose) with [#cb67c](https://github.com/shayanhabibi/Partas.GitNet/commit/cb67cb3aff5439a7c97c55c60e0b8b2b90abd995)
-  
+#### <!-- 6 --> Others
 
 * init by [@cabboose](https://github.com/shayanhabibi/Partas.GitNet/cabboose) with [#0b1de](https://github.com/shayanhabibi/Partas.GitNet/commit/0b1de606a16bf4a973759662fd1dd080de024905)
+  
+
+* Init by [@cabboose](https://github.com/shayanhabibi/Partas.GitNet/cabboose) with [#cb67c](https://github.com/shayanhabibi/Partas.GitNet/commit/cb67cb3aff5439a7c97c55c60e0b8b2b90abd995)
   
 
 <div align="right"><a href="#quick-navigation">(back to top)</a></div>
