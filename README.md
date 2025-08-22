@@ -12,6 +12,8 @@ I have the laziest CI, I build, package and push my projects on every run (with 
 
 I can just do a git push at the end of the run. Delightful for me.
 
+Why delightful? [Take a look](https://github.com/shayanhabibi/Partas.Solid.Primitives/blob/master/RELEASE_NOTES.md) at some of the repos of bindings I'm authoring (so many mini projects in one repo).
+
 > [!WARNING]
 > My CI is risky, and it's okay, because GitNet is
 > configurable. You can run steps and inspect outputs to determine
@@ -21,7 +23,10 @@ I can just do a git push at the end of the run. Delightful for me.
 
 ## Git that Net
 
-[Check out the output.](https://github.com/shayanhabibi/Partas.GitNet/blob/master/RELEASE_NOTES.md)
+Check out the output:
+* [For this repo](https://github.com/shayanhabibi/Partas.GitNet/blob/master/RELEASE_NOTES.md)
+* [For Partas.Solid.Bindings](https://github.com/shayanhabibi/Partas.Solid.Bindings/blob/master/RELEASE_NOTES.md)
+* [For Partas.Solid.Primitives](https://github.com/shayanhabibi/Partas.Solid.Primitives/blob/master/RELEASE_NOTES.md)
 
 [See my build project that creates this.](https://github.com/shayanhabibi/Partas.GitNet/blob/master/Build/Program.fs#L71-L92)
 
