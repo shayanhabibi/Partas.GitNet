@@ -20,7 +20,7 @@
 
     <ItemGroup>
         <Compile Include="Program.fs" />
-        <None Include="..\publis\Partas_d00b_00a icon.png">
+        <None Include="..\public\Partas_d00b_00a icon.png">
             <Pack>True</Pack>
             <PackagePath>\</PackagePath>
             <Link>Public/icon.png</Link>
