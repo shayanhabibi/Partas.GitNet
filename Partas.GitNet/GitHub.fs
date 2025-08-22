@@ -59,5 +59,5 @@ type UrlFactory(urlRoot: string) =
     member this.CreateCommit(sha: string) =
         sha |> sprintf "%s%s" commitBase
     member this.CreateAuthor(author: string) =
-        author |> sprintf "%s/%s" urlRoot
+        author |> sprintf "https://github.com/%s"
     new (ghRemote: GitHubRemote) = UrlFactory(urlRoot ghRemote)
