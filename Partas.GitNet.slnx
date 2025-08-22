@@ -5,6 +5,7 @@
   </Folder>
   <Folder Name="/misc/">
     <File Path="README.md" />
+    <File Path="RELEASE_NOTES.md"/>
   </Folder>
   <Folder Name="/src/">
     <Project Path="Partas.GitNet.Cli\Partas.GitNet.Cli.fsproj" Type="Classic F#" />
