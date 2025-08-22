@@ -1,12 +1,30 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <OutputType>Exe</OutputType>
         <TargetFramework>net8.0</TargetFramework>
+        <PackageId>Partas.GitNet.Markdown</PackageId>
+        <Title>Partas.GitNet.Markdown</Title>
+        <Company>Partas</Company>
+        <Description>Utility wrappers around FSharp.Formatting.Markdown</Description>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <RepositoryUrl>https://github.com/shayanhabibi/Partas.GitNet</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageTags>FSharp;Partas;Formatting;Markdown</PackageTags>
+        <Authors>Shayan Habibi</Authors>
+        <Copyright>Copyright (c) Shayan Habibi 2025</Copyright>
+        <Version>0.0.1</Version>
+        <PackageVersion>0.0.1</PackageVersion>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <PackageIcon>Partas_d00b_00a icon.png</PackageIcon>
     </PropertyGroup>
 
     <ItemGroup>
         <Compile Include="Program.fs" />
+        <None Include="..\publis\Partas_d00b_00a icon.png">
+            <Pack>True</Pack>
+            <PackagePath>\</PackagePath>
+            <Link>Public/icon.png</Link>
+        </None>
     </ItemGroup>
 
     <ItemGroup>

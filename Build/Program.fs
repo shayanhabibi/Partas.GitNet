@@ -66,6 +66,7 @@ open Partas.GitNet.RepoCracker
 let projects = [|
     Files.``Partas.GitNet``.``Partas.GitNet.fsproj``
     Files.``Partas.Tools.SepochSemver``.``Partas.Tools.SepochSemver.fsproj``
+    Files.``Partas.GitNet.Markdown``.``Partas.GitNet.Markdown.fsproj``
 |]
 
 let gitnetConfig = {
@@ -84,7 +85,6 @@ let gitnetConfig = {
                         Files.``Partas.GitNet.Cli``.``Partas.GitNet.Cli.fsproj``
                         Files.Tests.``Partas.GitNet.Tests``.``Partas.GitNet.Tests.fsproj``
                         Files.Tests.``Partas.Tools.SepochSemver.Tests``.``Partas.Tools.SepochSemver.Tests.fsproj``
-                        Files.``Partas.GitNet.Markdown``.``Partas.GitNet.Markdown.fsproj``
                     ]
             }
             |> Some
