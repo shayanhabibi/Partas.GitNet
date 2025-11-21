@@ -57,7 +57,7 @@ jobs:
       - name: Restore tools
         run: dotnet tool restore
       - name: Build sln
-        run: dotnet build -c Release Partas.GitNet.slnx
+        run: dotnet build -c Release docs.slnx
       - name: Upload documentation
         uses: actions/upload-pages-artifact@v4
         with:
