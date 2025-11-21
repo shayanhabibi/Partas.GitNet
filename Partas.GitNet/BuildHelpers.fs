@@ -1,4 +1,5 @@
-﻿module Partas.GitNet.BuildHelpers
+﻿[<AutoOpen>]
+module Partas.GitNet.BuildHelpers
 
 // During the build process, we are abstracting away version control.
 // However, we must keep in mind that a mono repo where packages reference
@@ -7,9 +8,7 @@
 // For this reason, we need build helpers which will version the project
 // files directly for the build process. These are not necessary to commit.
 
-open System
 open System.Collections.Generic
-open System.Xml
 open System.Xml.Linq
 open Fake.IO
 open Fake.DotNet
@@ -25,7 +24,7 @@ open Partas.Tools.SepochSemver
 /// <param name="projectPath">Path to .fsproj</param>
 /// <param name="versionString">Semver string</param>
 /// <returns>Revert function to run after the build processes</returns>
-let versionProject (projectPath: string) (versionString: string) =
+let private versionProject (projectPath: string) (versionString: string) =
     let proj = MSBuild.loadProject projectPath
     let originalContent = File.readAsString projectPath
     let revert = fun () -> File.writeString false projectPath originalContent
@@ -99,7 +98,7 @@ let versionProject (projectPath: string) (versionString: string) =
         | None ->
             failwith "Cannot version a project without a Project node"
 
-let getProjectsForMapping (mapping: IDictionary<string, SepochSemver>) (runtime: GitNetRuntime) =
+let private getProjectsForMapping (mapping: IDictionary<string, SepochSemver>) (runtime: GitNetRuntime) =
         runtime.CrackRepo
         |> Seq.choose(function
             | CrackedProject.FSharp ({

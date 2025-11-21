@@ -1,5 +1,7 @@
 ﻿[<AutoOpen>]
 module Partas.GitNet.RunExtensions
+
+open System.Collections.Frozen
 open System.Collections.Generic
 open FSharp.Formatting.Markdown
 open LibGit2Sharp.FSharp
@@ -9,6 +11,12 @@ open Partas.GitNet.MarkdownWriter
 open Partas.GitNet.Renderer.Render
 open Partas.GitNet.RepoCracker
 open Partas.Tools.SepochSemver
+
+type RuntimeOutput = {
+    Versions: FrozenDictionary<string, GitNetTag voption>
+    Bumps: IDictionary<string, SepochSemver>
+    Markdown: string
+}
 
 type GitNetRuntime with
     member this.WriteToOutput(content: string) =
@@ -106,20 +114,31 @@ type GitNetRuntime with
                         scope, nekVersion
                 )
             |> dict
-        bumps,renderMarkup
+        let versions = render.Versions |> this.AddToCacheRuns
+        bumps,renderMarkup, versions
     member this.DryRun() =
-        let bumps,content = this.DryRunImpl()
+        let bumps,content,versions = this.DryRunImpl()
         let markdownString =
             content.Document
             |> Markdown.ToMd
-        bumps,markdownString
-    /// Acts upon 'autobump' and other settings
-    member this.Run(?username: string,?email: string) =
+        {
+            Markdown = markdownString
+            Bumps = bumps
+            Versions = versions
+        }
+    /// <summary>
+    /// Executes a run.
+    /// </summary>
+    /// <param name="bumps"></param>
+    /// <param name="content"></param>
+    /// <param name="versions"></param>
+    /// <param name="username"></param>
+    /// <param name="email"></param>
+    member private this.RunImpl(bumps: IDictionary<string, SepochSemver>,content,versions, ?username: string, ?email: string) =
         let username = defaultArg username "GitHub Action"
         let email = defaultArg email "41898282+github-actions[bot]@users.noreply.github.com"
-        let bumps,content = this.DryRunImpl()
         let matchesRepoBranch = this.repo |> Repository.head |> Branch.name |> (=)
-        let autoTaggedSemvers =
+        let taggedSemvers=
             this.CrackRepo
             |> Seq.choose(
                 CrackedProject.getFSharp
@@ -136,11 +155,10 @@ type GitNetRuntime with
                                                     |> Option.defaultValue true
                              let bumpContainsScope =
                                  match scope with
-                                 | Some key -> bumps.ContainsKey(key)
+                                 | Some key -> bumps.ContainsKey(key) 
                                  | _ -> false
                              branchNameIsFine && bumpContainsScope
-                        ) ->
-                               ValueSome bumps[scope.Value]
+                        ) -> ValueSome bumps[scope.Value]
                         | _ -> ValueNone
                     )
                 >> ValueOption.toOption
@@ -157,10 +175,10 @@ type GitNetRuntime with
         
         match this.config.AssemblyFiles with
         | AssemblyFileManagement.Create
-        | AssemblyFileManagement.UpdateIfExists when autoTaggedSemvers |> Array.isEmpty |> not ->
-            this.WriteAssemblyFiles(autoTaggedSemvers, stageFiles = true)
+        | AssemblyFileManagement.UpdateIfExists when taggedSemvers |> Array.isEmpty |> not ->
+            this.WriteAssemblyFiles(taggedSemvers, stageFiles = true)
             this.VersionProjects(
-                autoTaggedSemvers
+                taggedSemvers
                 |> Array.choose(function
                     | { Sepoch = sepoch } as semver when sepoch.GetScope.IsSome ->
                         Some (sepoch.GetScope.Value, semver)
@@ -170,15 +188,15 @@ type GitNetRuntime with
                 , true
                 )
             this.CommitChanges(username, email)
-            this.CommitTags(autoTaggedSemvers)
+            this.CommitTags(taggedSemvers)
             let result = this.DryRun()
             #if DEBUG
             (this.GetAssemblyFileStats, this.GetTagStats, this.GetVersionFileStats)
             |||> printfn "STATS:\nWritten %i assembly files\nWritten %i tags\nOverwritten %i project files"
             #endif
             result
-        | AssemblyFileManagement.None when autoTaggedSemvers |> Array.isEmpty |> not ->
-            this.CommitTags(autoTaggedSemvers)
+        | AssemblyFileManagement.None when taggedSemvers |> Array.isEmpty |> not ->
+            this.CommitTags(taggedSemvers)
             let result = this.DryRun()
             #if DEBUG
             (this.GetAssemblyFileStats, this.GetTagStats, this.GetVersionFileStats)
@@ -186,38 +204,29 @@ type GitNetRuntime with
             #endif
             result
         | _ ->
-            bumps, content.Document |> Markdown.ToMd
-        |> function
-            | bumps,content ->
-                this.WriteToOutputAndCommit(content) |> ignore
-                bumps,content
-open FSharp.Data
-// module Program =
-//     [<EntryPoint>]
-//     let main args =
-//         // let path = @"C:\Users\shaya\RiderProjects\Partas.Solid.Primitives\"
-//         // let path = @"C:/Users/shaya/riderprojects/partas.gitnet/tests/partas.gitnet.tests/partas.solid.testground/"
-//         // let path = @"C:/Users/shaya/riderprojects/FullPerla/"
-//         let path = @"C:/Users/shaya/riderprojects/oxpecker.solid.jitbox/"
-//         {
-//             GitNetConfig.init true with
-//                 RepositoryPath = path
-//                 Output.Ignore =
-//                     IgnoreCommit.SkipCi ::
-//                     Defaults.ignoreCommits
-//                 AssemblyFiles = AssemblyFileManagement.Create
-//                 // Bump.DefaultBumpStrategy = ForceBumpStrategy.All
-//         }
-//         |> fun config ->
-//             let runtime = new GitNetRuntime(config)
-//             // let bumps,content = runtime.DryRun()
-//             // runtime.WriteAssemblyFiles(bumps)
-//             // runtime.StageVersionProjects(bumps)
-//             // runtime.CommitChanges("GitHub Actions", "noreply@github.com")
-//             let bumps,content = runtime.Run()
-//             content
-//             |> printfn "%A"
-//             bumps
-//             |> printfn "%A"
-//             
-//         0
+            {
+                Bumps = bumps
+                Markdown = content.Document |> Markdown.ToMd
+                Versions = versions
+            }
+        |> fun ({ Markdown = markdown } as result) ->
+            this.WriteToOutputAndCommit(markdown)
+            result
+    /// <summary>
+    /// Run GitNet, versioning according to the provided config AutoBumps etc.
+    /// </summary>
+    /// <param name="username">Git username</param>
+    /// <param name="email">Git email</param>
+    member this.Run(?username: string,?email: string) =
+        let bumps,content,versions = this.DryRunImpl()
+        this.RunImpl(bumps,content,versions,?username = username, ?email = email)
+    /// <summary>
+    /// Remap a gitnet run with the planned bumps and current computed versions of the scopes.
+    /// </summary>
+    /// <param name="mapping">A mapping function which provides the bumps to execute; ie, the sepoch semvers to version.</param>
+    /// <param name="username">Git username</param>
+    /// <param name="email">Git email</param>
+    member this.Run(mapping: IDictionary<string, SepochSemver> -> FrozenDictionary<string, GitNetTag voption> -> IDictionary<string, SepochSemver>, ?username, ?email) =
+        let bumps,content,versions = this.DryRunImpl()
+        let bumps = mapping bumps versions
+        this.RunImpl(bumps, content, versions, ?username = username, ?email = email)

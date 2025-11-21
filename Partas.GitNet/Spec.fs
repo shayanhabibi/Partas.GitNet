@@ -6,13 +6,26 @@
 let [<Literal>] dateFormat = "yyyy-MM-dd"
 
 /// <summary>
-/// Literals relating to attributes in the project files that are relevant to us.
+/// These are literals that can be used as tags in <c>.fsproj</c> <c>PropertyGroup</c> elements.
+/// Their impact and relevance is discussed for each item.
 /// </summary>
 module MSBuild =
+    /// <summary>
     /// Explicitly sets the scope value for a FSProject.
+    /// </summary>
+    /// <example>
+    /// <para>
+    /// For the case of a project <c>Partas.Solid.Common</c>, the default scheme results in the scope being
+    /// <c>Common</c>.
+    /// </para>
+    /// <para>A method of explicitly setting the Scope within the project file is using the <c>GitNetScope</c>
+    /// build property</para>
+    /// </example>
     [<Literal>]
     let Scope = "GitNetScope"
+    /// <summary>
     /// Explicitly sets the current Epoch for a FSProject
+    /// </summary>
     [<Literal>]
     let Epoch = "GitNetEpoch"
     /// Explicitly declares for GitNet to automatically
@@ -30,4 +43,4 @@ module MSBuild =
     /// Explicitly declare whether to automatically
     /// update assembly files for the project.
     [<Literal>]
-    let AutoUpdateAssemblyFiles = "GitNetAutoUpdateAssemblyFiles"        
+    let AutoUpdateAssemblyFiles = "GitNetAutoUpdateAssemblyFiles"

@@ -2,6 +2,7 @@
 module Partas.GitNet.GitNetRuntime
 
 open System
+open System.Collections.Frozen
 open System.Collections.Generic
 open LibGit2Sharp
 open Partas.Tools.SepochSemver
@@ -13,6 +14,10 @@ open LibGit2Sharp.FSharp
 /// prevent boiler plate parameters being passed around.
 type GitNetRuntime(config: GitNetConfig) =
     let _repo = Repository.load config.RepositoryPath
+    let _cachedRuns = ResizeArray<FrozenDictionary<string, GitNetTag voption>>()
+    let cacheRun: (string * GitNetTag voption) array -> _ = Array.map KeyValuePair >> _.ToFrozenDictionary() >> fun input -> _cachedRuns.Add input; input
+    let getLastCacheRun () = _cachedRuns |> Seq.last
+    let getCacheRuns() = _cachedRuns |> Seq.toArray
     let githubRemote =
         _repo |> Repository.network
         |> Network.remotes
@@ -99,6 +104,14 @@ type GitNetRuntime(config: GitNetConfig) =
     member this.Disposals = disposals
     member internal this.WriteCommitToMarkdown scope commit =
         writeCommitMessage scope commit
+    /// <summary>
+    /// Commits staged files.
+    /// </summary>
+    /// <param name="username">Git username</param>
+    /// <param name="email">Git email</param>
+    /// <param name="message">Message for commit</param>
+    /// <param name="date">Date</param>
+    /// <param name="appendCommit">Whether to append to last commit</param>
     member this.CommitChanges(?username,?email,?message: string, ?date: DateTimeOffset, ?appendCommit: bool) =
         let appendCommit =
             if commitHasBeenMade then
@@ -118,6 +131,13 @@ type GitNetRuntime(config: GitNetConfig) =
         with e ->
             e
             |> printfn "Error while committing changes: %A"
+    /// <summary>
+    /// Tags the current head of the repository with the given semvers.
+    /// </summary>
+    /// <remarks>
+    /// Tags must still be pushed to the repository to have effect.
+    /// </remarks>
+    /// <param name="tags"></param>
     member this.CommitTags(tags: SepochSemver seq) =
         tags
         |> Seq.iter (fun sepochSemver ->
@@ -132,8 +152,7 @@ type GitNetRuntime(config: GitNetConfig) =
             | :? NameConflictException as e ->
                 printfn $"Duplicate tag %A{sepochSemver}:\n%A{e}"
             )
-        
-    member this.CategoriseCommits(commits: GitNetCommit seq) =
+    member internal this.CategoriseCommits(commits: GitNetCommit seq) =
         let config = this.config.Output
         commits
         |> Seq.map (GitNetCommit.parsed >> config.ComputeGroupMatcher)
@@ -141,6 +160,18 @@ type GitNetRuntime(config: GitNetConfig) =
     member internal this.StatAssemblyFile = cacheAssemblyFile
     member internal this.StatVersionFile = cacheVersionFile
     member internal this.StatTag = cacheTag
+    member internal this.AddToCacheRuns = cacheRun
+    /// <summary>
+    /// A Run/DryRun computes the versions of scopes from the git history of commits and tags.
+    /// This computes are cached and can be utilised by users.
+    /// </summary>
+    member this.GetLastRun() = getLastCacheRun()
+    /// <summary>
+    /// A Run/DryRun computes the versions of scopes from the git history of commits and tags.
+    /// This computes are cached and can be utilised by users.
+    /// </summary>
+    member this.GetRuns() = getCacheRuns()
+    
 module Runtime =
     let computeEpochFooterMatcher (runtime: GitNetRuntime): Footer -> bool =
         let runtimeEpochMatches: string -> bool = fun value ->
