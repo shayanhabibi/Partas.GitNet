@@ -5,6 +5,7 @@ open Partas.Tools.SepochSemver
 open Partas.ConventionalCommits
 open LibGit2Sharp.FSharp
 
+/// Short hand access to LibGit2Sharp types
 [<AutoOpen>]
 module Aliases =
     type DiffTargets = LibGit2Sharp.DiffTargets
@@ -14,6 +15,9 @@ module Aliases =
     type Tag = LibGit2Sharp.Tag
     type GitObject = LibGit2Sharp.GitObject
 
+/// <summary>
+/// Indicates the value of a <i>Bump</i>.
+/// </summary>
 [<RequireQualifiedAccess>]
 type BumpType =
     | Patch
@@ -62,6 +66,16 @@ module CrackedProject =
         Epoch: string option
         /// GitNetAutoBumpBranchName
         AutoBumpBranchName: string option
+        /// <summary>
+        /// Version of the project file.
+        /// </summary>
+        /// <remarks>
+        /// This is not representative of a custom <c>GitNet</c> property like the other fields.
+        /// Instead, it serves to provide the initial version of the project file to consumers to use
+        /// where relevant.<br/>
+        /// It doesn't serve any purpose in default functions of GitNet.
+        /// </remarks>
+        Version: Semver.SemVersion option
     }
     let getFSharp = function
         | CrackedProject.FSharp proj -> ValueSome proj
@@ -95,10 +109,15 @@ type GitNetTag =
     /// Non-Semver compatible tag
     | GitTag of Tag
 
+/// <summary>
 /// CommitGroup. You can define specific settings for a commit group,
 /// such as the name, the position, the heading level used, a preamble,
-/// a postamble, whether to only count the number of commits in the group.
+/// a postamble, whether to only count the number of commits in the group.<br/><br/>
 /// At least the title must be defined.
+/// </summary>
+/// <remarks>
+/// All defaults are None/false; <c>HeadingLevel</c> default is <c>4</c>.
+/// </remarks>
 [<AbstractClass>]
 type CommitGroup() =
     abstract Title: string
