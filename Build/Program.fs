@@ -125,7 +125,8 @@ Target.create Ops.GitPush <| fun args ->
 Target.create Ops.GitNet <| fun args ->
     let runtime = runtime.Value
     if Args.local then
-        let bumps,content = runtime.DryRun()
+        let bumps,content =
+            runtime.DryRun() |> function { Bumps = bumps; Markdown = content } -> bumps,content
         bumps
         |> Seq.map (fun keyval ->
             (keyval.Key, keyval.Value.SemVer.ToString(), keyval.Value.ToString())
