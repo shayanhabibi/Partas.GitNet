@@ -69,10 +69,10 @@ which includes [Scopes and Epochs](#epoch-scoped-semver).
 
 #### <!-- 6 --> Others
 
-* init by [@cabboose](https://github.com/cabboose) with [#0b1de](https://github.com/shayanhabibi/Partas.GitNet/commit/0b1de606a16bf4a973759662fd1dd080de024905)
+* Init by [@cabboose](https://github.com/cabboose) with [#cb67c](https://github.com/shayanhabibi/Partas.GitNet/commit/cb67cb3aff5439a7c97c55c60e0b8b2b90abd995)
   
 
-* Init by [@cabboose](https://github.com/cabboose) with [#cb67c](https://github.com/shayanhabibi/Partas.GitNet/commit/cb67cb3aff5439a7c97c55c60e0b8b2b90abd995)
+* init by [@cabboose](https://github.com/cabboose) with [#0b1de](https://github.com/shayanhabibi/Partas.GitNet/commit/0b1de606a16bf4a973759662fd1dd080de024905)
   
 
 <div align="right"><a href="#quick-navigation">(back to top)</a></div>
