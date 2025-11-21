@@ -134,7 +134,12 @@ type GitNetRuntime with
     /// <param name="versions"></param>
     /// <param name="username"></param>
     /// <param name="email"></param>
-    member private this.RunImpl(bumps: IDictionary<string, SepochSemver>,content,versions, ?username: string, ?email: string) =
+    /// <param name="commit"></param>
+    /// <param name="append"></param>
+    /// <param name="stageFile"></param>
+    member private this.RunImpl(bumps: IDictionary<string, SepochSemver>,content,versions, ?username: string, ?email: string, ?commit: bool, ?append: bool, ?stageFile: bool) =
+        let commit = defaultArg commit true
+        let stageFile = defaultArg stageFile true
         let username = defaultArg username "GitHub Action"
         let email = defaultArg email "41898282+github-actions[bot]@users.noreply.github.com"
         let matchesRepoBranch = this.repo |> Repository.head |> Branch.name |> (=)
@@ -184,11 +189,12 @@ type GitNetRuntime with
                         Some (sepoch.GetScope.Value, semver)
                     | _ -> None
                         )
-                |> dict
-                , true
+                |> dict,
+                stageFile = stageFile
                 )
-            this.CommitChanges(username, email)
-            this.CommitTags(taggedSemvers)
+            if commit then
+                this.CommitChanges(username, email, ?appendCommit = append)
+                this.CommitTags(taggedSemvers)
             let result = this.DryRun()
             #if DEBUG
             (this.GetAssemblyFileStats, this.GetTagStats, this.GetVersionFileStats)
@@ -196,7 +202,8 @@ type GitNetRuntime with
             #endif
             result
         | AssemblyFileManagement.None when taggedSemvers |> Array.isEmpty |> not ->
-            this.CommitTags(taggedSemvers)
+            if commit then
+                this.CommitTags(taggedSemvers)
             let result = this.DryRun()
             #if DEBUG
             (this.GetAssemblyFileStats, this.GetTagStats, this.GetVersionFileStats)
@@ -210,23 +217,40 @@ type GitNetRuntime with
                 Versions = versions
             }
         |> fun ({ Markdown = markdown } as result) ->
-            this.WriteToOutputAndCommit(markdown)
+            if commit then
+                this.WriteToOutputAndCommit(markdown)
+            else
+                this.WriteToOutput(markdown)
+                |> ignore
             result
     /// <summary>
     /// Run GitNet, versioning according to the provided config AutoBumps etc.
     /// </summary>
     /// <param name="username">Git username</param>
     /// <param name="email">Git email</param>
-    member this.Run(?username: string,?email: string) =
+    /// <param name="commit"></param>
+    /// <param name="appendCommit"></param>
+    /// <param name="stageFile"></param>
+    member this.Run(?username: string,?email: string, ?commit: bool, ?appendCommit: bool, ?stageFile: bool) =
         let bumps,content,versions = this.DryRunImpl()
-        this.RunImpl(bumps,content,versions,?username = username, ?email = email)
+        this.RunImpl(bumps,content,versions,?username = username, ?email = email, ?commit = commit, ?append = appendCommit, ?stageFile = stageFile)
     /// <summary>
     /// Remap a gitnet run with the planned bumps and current computed versions of the scopes.
     /// </summary>
     /// <param name="mapping">A mapping function which provides the bumps to execute; ie, the sepoch semvers to version.</param>
     /// <param name="username">Git username</param>
     /// <param name="email">Git email</param>
-    member this.Run(mapping: IDictionary<string, SepochSemver> -> FrozenDictionary<string, GitNetTag voption> -> IDictionary<string, SepochSemver>, ?username, ?email) =
+    /// <param name="commit"></param>
+    /// <param name="appendCommit"></param>
+    /// <param name="stageFile"></param>
+    member this.Run(
+            mapping: IDictionary<string, SepochSemver> -> FrozenDictionary<string, GitNetTag voption> -> IDictionary<string, SepochSemver>,
+            ?username,
+            ?email,
+            ?commit: bool,
+            ?appendCommit: bool,
+            ?stageFile: bool
+        ) =
         let bumps,content,versions = this.DryRunImpl()
         let bumps = mapping bumps versions
-        this.RunImpl(bumps, content, versions, ?username = username, ?email = email)
+        this.RunImpl(bumps, content, versions, ?username = username, ?email = email, ?commit = commit, ?append = appendCommit, ?stageFile = stageFile)
