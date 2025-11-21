@@ -1,4 +1,5 @@
-﻿module Partas.GitNet.RepoCracker
+﻿[<AutoOpen>]
+module Partas.GitNet.RepoCracker
 
 open System.Collections.Generic
 open System.IO
@@ -12,7 +13,7 @@ open Fake.DotNet
 open Partas.Tools.SepochSemver
 open Semver
 
-module Projects =
+module internal Projects =
     let private findFsProjs (runtime: GitNetRuntime) =
         !! $"**/*.fsproj"
         |> _.SetBaseDirectory(runtime.rootDir)
@@ -43,14 +44,19 @@ module Projects =
             let result = System.Boolean.TryParse(inp)
             if fst result then snd result else false)
     let tryGetInitialVersion: MSBuildProject -> SemVersion voption =
-        extractElementValue "GitNetInitialVersion" >> ValueOption.map SemVersion.Parse
+        extractElementValue "GitNetInitialVersion"
+        >> ValueOption.map SemVersion.Parse
     let tryGetAutoBumpBranchName: MSBuildProject -> string voption =
         extractElementValue "GitNetAutoBumpBranchName"
+    let tryGetVersion: MSBuildProject -> SemVersion voption = fun proj ->
+        extractElementValue "Version" proj
+        |> ValueOption.orElse (extractElementValue "PackageVersion" proj)
+        |> ValueOption.map SemVersion.Parse
     let tryGetAutoUpdateAssemblyFiles: MSBuildProject -> string voption = extractElementValue "GitNetAutoUpdateAssemblyFiles"
     let tryGetTitle project: string voption =
         extractElementValue "Title" project
         |> ValueOption.orElse (extractElementValue "PackageId" project)
-module Config =
+module internal Config =
     let nameResolver (config: ProjectFSharpConfig option) (path: string) (msbuildProj: MSBuildProject): string voption =
         let makeResolver =
             let fileNameResolver =
@@ -125,21 +131,22 @@ module Config =
 
 open Config
 
-module Path =
+module internal Path =
     /// Returns a function that will map any path relative to the provided root.
     let inline computeRelativeMapper (root: string): string -> string =
         fun path -> Path.GetRelativePath(root, path)
 
-module CrackedProject =
+module internal CrackedProject =
     module GitNetOptions =
         open CrackedProject
-        let create scope initialVersion autoBump epoch autobranchName =
+        let create scope initialVersion autoBump epoch autobranchName version =
             {
                 Scope = scope
                 InitialVersion = initialVersion
                 AutoBump = autoBump
                 Epoch = epoch
                 AutoBumpBranchName = autobranchName
+                Version = version
             }
         let inline tryParseSemver input =
             let success,result = SemVersion.TryParse input
@@ -246,7 +253,17 @@ module CrackedProject =
                 |> projectIgnorer proj projectPath 
     type private ScopeFactoryFunc = MSBuildProject -> string -> string option
     type private AutoBumpScopeFunc = string option -> bool
-    type private InitialVersionScopeFunc = string option -> SemVersion option 
+    type private InitialVersionScopeFunc = string option -> SemVersion option
+    /// <remarks>
+    /// The precomputed functions are overridden by project file configurations if present. We extract the relevant
+    /// project file element, and if it is absent, we instead apply the config computed function.
+    /// </remarks>
+    /// <param name="config">Config used in request for <c>CrackedProject</c></param>
+    /// <param name="scoper">Function pre-computed from config that maps a project file to the scope name.</param>
+    /// <param name="autoBumper">Function pre-computed from config that determines whether to auto bump a scope.</param>
+    /// <param name="initVersioner">Function pre-computed from config that determines the initial version of a scope.</param>
+    /// <param name="repoDir">The repository base path</param>
+    /// <param name="path">The path of the <c>.fsproj</c> file</param>
     let create
         (config: GitNetConfig)
         (scoper: ScopeFactoryFunc)
@@ -274,15 +291,21 @@ module CrackedProject =
             (proj, initVersioner, scope)
             |||> GitNetOptions.getInitialVersionForProjectWithScope
         let autoBumpBranchName = Projects.tryGetAutoBumpBranchName proj |> ValueOption.toOption
+        let version = proj |> Projects.tryGetVersion |> ValueOption.toOption
         {
             ProjectDirectory = makeRelativeFromRepo absoluteProjectDirectory
             ProjectFileName = makeRelativeFromRepo path
             SourceFiles = Seq.toList sourceFiles
             AssemblyFile = assemblyFile
-            GitNetOptions = GitNetOptions.create scope initialVersion autoBump epoch autoBumpBranchName
+            GitNetOptions = GitNetOptions.create scope initialVersion autoBump epoch autoBumpBranchName version
         }
 
 type GitNetRuntime with
+    /// <summary>
+    /// <para>Explores and provides the projects from the repository.</para>
+    /// <para>The data is computed on demand, so care must be taken when writing to disk and subsequently recomputing
+    /// the project information.</para>
+    /// </summary>
     member this.CrackRepo =
         match this.config.ProjectType with
         | ProjectType.FSharp _ ->
@@ -314,6 +337,12 @@ type GitNetRuntime with
                     ProjectDirectory = keyValue.Key
                     Scope = keyValue.Value
                 })
+    /// <summary>
+    /// Given a sequence of <c>SepochSemver</c>'s, will generate <c>AssemblyFile</c>'s using the
+    /// scope from the input to match against the project directory.
+    /// </summary>
+    /// <param name="versions">The sequence of <c>SepochSemver</c>'s to operate on. Scopeless Semvers will have no effect.</param>
+    /// <param name="stageFiles">Whether to subsequently stage the generated files (Default <c>false</c>).</param>
     member this.WriteAssemblyFiles (versions: SepochSemver seq, ?stageFiles: bool) =
         let stageFiles = defaultArg stageFiles false
         this.CrackRepo
@@ -368,12 +397,21 @@ type GitNetRuntime with
                         |> printfn "%A"
                 | _ -> ()
             )
+    /// <summary>
+    /// Given a dictionary of <c>Scope</c>'s to <c>SepochSemver</c>'s, will generate <c>AssemblyFile</c>'s using the
+    /// scope from the values to match against the project directory.
+    /// </summary>
+    /// <param name="mapping">The dict of <c>SepochSemver</c>'s to operate on. Scopeless Semvers will have no effect.
+    /// Since this is an alias to <c>_.WriteAssemblyFiles</c> of type <c>SepochSemver seq</c>, the keys of the map
+    /// have no effect.</param>
+    /// <param name="stageFiles">Whether to subsequently stage the generated files (Default <c>false</c>).</param>
     member this.WriteAssemblyFiles (mapping: IDictionary<string, SepochSemver>, ?stageFiles) =
         this.WriteAssemblyFiles(mapping.Values, ?stageFiles = stageFiles)
     /// <summary>
-    /// Convenience overload that accepts the output of <c>runtime.Run()</c> and
+    /// <para>Convenience overload that accepts the output of <c>runtime.Run()</c> and
     /// uses the provided versions in the bump dictionary to update the assembly files
-    /// before returning tuple for further processing.
+    /// before returning tuple for further processing.</para>
+    /// <para>Does not stage the files.</para>
     /// </summary>
     member this.WriteAssemblyFiles(mapping: IDictionary<string, SepochSemver> * string) =
         mapping

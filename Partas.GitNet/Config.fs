@@ -182,8 +182,60 @@ type ProjectType =
     | None of ProjectNoneConfig
 
 /// <summary>
-/// Commit ignore strategies.
+/// Commit ignore strategies. See Remarks for overview.
 /// </summary>
+/// <remarks>
+/// <list type="table">
+///     <listheader>
+///         <term>Strategy</term>
+///         <description>Description</description>
+///     </listheader>
+///     <item>
+///         <term>Author</term>
+///         <description>Ignores commits based on the <c>Author</c> which is distinct from the <c>Committer</c></description>
+///     </item>
+///     <item>
+///         <term>Email</term>
+///         <description>Ignores commits based on the <c>Author</c> email.</description>
+///     </item>
+///     <item>
+///         <term>Type</term>
+///         <description>Ignores commits based on the <c>Type</c> if they are conventional commits</description>
+///     </item>
+///     <item>
+///         <term>FooterKey</term>
+///         <description>Ignores commits based on the presence of a <c>FooterKey</c> if they are conventional commits</description>
+///     </item>
+///     <item>
+///         <term>FooterKeyValue</term>
+///         <description>Ignores commits based on whether a particular <c>Footer</c> key value pair is present (if they are conventional commits).</description>
+///     </item>
+///     <item>
+///         <term>Sha</term>
+///         <description>Ignores commits based on their <c>Sha</c>. It only checks the abbreviated forms as is provided by most tools, and will shorten full <c>Sha</c>s if required.</description>
+///     </item>
+///     <item>
+///         <term>Tag</term>
+///         <description>Ignore all the commits of a particular <c>Tag</c></description>
+///     </item>
+///     <item>
+///         <term>TimeRange</term>
+///         <description>Ignore commits that fall within a specific time period.</description>
+///     </item>
+///     <item>
+///         <term>CommitScope</term>
+///         <description>Ignore commits that have a specified conventional commit scope. (eg: <c>fix(ci): summary</c> has a scope of <c>ci</c>)</description>
+///     </item>
+///     <item>
+///         <term>SubjectRegex</term>
+///         <description>Ignore commits based on their subject (or the first line) that matches the given regex.</description>
+///     </item>
+///     <item>
+///         <term>SkipCi</term>
+///         <description>Ignore commits that start with <c>[skip ci]</c></description>
+///     </item>
+/// </list>
+/// </remarks>
 [<RequireQualifiedAccess>]
 type IgnoreCommit =
     /// <summary>
@@ -746,39 +798,102 @@ type GitNetConfig = {
     WriteVersionToProjects: bool
 }
 
-/// <summary>
-/// Collection of the defaults for each configuration setting and object/record.
-/// </summary>
+/// Contains default configuration values and settings used across the application.
+/// This module provides default strategies, configurations, and mappings related
+/// to various components such as file splitting, output paths, versioning, commit
+/// grouping, and release generation.
 module Defaults =
     module NonFSharp =
+        /// <summary>
+        /// Default <c>ProjectType.None</c>
+        /// </summary>
         let projectType = ProjectType.None
+        /// <summary>
+        /// Default <c>{ PathScopeMapping = dict [] }</c>
+        /// </summary>
         let projectNoneConfig = {
             PathScopeMapping = dict []
         }
+        /// <summary>
+        /// Default <c>ScopeStrategy.Auto</c>
+        /// </summary>
         let scopeStrategy = ScopeStrategy.Auto
+    /// <summary>
+    /// Default <c>FileSplittingStrategy.Monolith</c>
+    /// </summary>
     let fileSplittingStrategy = FileSplittingStrategy.Monolith
+    /// <value><c>ScopePrefixConfig.SquareBrackets</c></value>
     let scopePrefixConfig = ScopePrefixConfig.SquareBrackets
+    /// <summary>
+    /// Default <c>MacroGroupType.Scoped</c>
+    /// </summary>
     let macroGroupType = MacroGroupType.Scoped
+    /// <summary>
+    /// Default <c>OutputPathType.Simple</c>
+    /// </summary>
     let outputPathType = OutputPathType.Simple
+    /// <summary>
+    /// Default <c>ProjectInitialVersionStrategy.Simple</c>
+    /// </summary>
     let projectInitialVersion = ProjectInitialVersionStrategy.Simple "0.1.0"
     module FSharp =
+        /// <summary>
+        /// Default <c>FSharpNameResolution.Auto</c>
+        /// </summary>
         let fsharpNameResolution = FSharpNameResolution.Auto
+        /// <summary>
+        /// <code>
+        /// IgnoredProjects = []
+        /// AutoScoping = _.Split('.') >> Seq.last >> Some
+        /// OverrideExplicitScopes = false
+        /// NameResolution = fsharpNameResolution
+        /// </code>
+        /// </summary>
         let projectFSharpConfig = {
             IgnoredProjects = []
             AutoScoping = _.Split('.') >> Seq.last >> Some
             OverrideExplicitScopes = false
             NameResolution = fsharpNameResolution
         }
+        /// <summary>
+        /// Default <c>ProjectType.FSharp</c>
+        /// </summary>
         let projectType = ProjectType.FSharp
+        /// <summary>
+        /// Default <c>AssemblyFileManagement.UpdateIfExists</c>
+        /// </summary>
         let assemblyFileManagement = AssemblyFileManagement.UpdateIfExists
+        /// <summary>
+        /// Default <c>ScopeStrategy.Auto</c>
+        /// </summary>
         let scopeStrategy = ScopeStrategy.Auto
 
-
+    /// <summary>
+    /// Default <c>{ Ignore = [] }</c>
+    /// </summary>
     let commitConfig = { Ignore = [] }
+    /// <summary>
+    /// Default <c>ForceBumpStrategy.None</c>
+    /// </summary>
     let forceBumpStrategy = ForceBumpStrategy.None
+    /// <summary>
+    /// Default <c>ForceBumpValue.Auto</c>
+    /// </summary>
     let forceBumpValue = ForceBumpValue.Auto
+    /// <summary>
+    /// Default <c>GenerateReleaseStrategy.PersScope</c>
+    /// </summary>
     let generateReleaseStrategy = GenerateReleaseStrategy.PerScope
+    /// <summary>
+    /// Default <c>GenerateRelease.None</c>
+    /// </summary>
     let generateRelease = GenerateRelease.None
+    /// <summary>
+    /// <para>Epoch: EpochMatcher 'epoch'</para>
+    /// <para>Major: Types - 'breaking', 'remove'</para>
+    /// <para>Minor: Types - 'feat', 'new', 'add'</para>
+    /// <para>Patch: Types - 'fix', 'perf', 'update', 'change'</para>
+    /// </summary>
     let commitBumpTypeMapping = {
         Epoch = [
             EpochMatcher("epoch")
@@ -799,10 +914,19 @@ module Defaults =
             BumpMatcher.Type "change"
         ]
     }
+    /// <summary>
+    /// <para>Breaking: breaking</para>
+    /// <para>Changed: update, change, updated</para>
+    /// <para>Deprecated: depr, deprecated, deprecate</para>
+    /// <para>Feat: feat, enhancement, new, added</para>
+    /// <para>Fix: fix, fixed</para>
+    /// <para>Revert: revert, rollback</para>
+    /// </summary>
     let groupMatchers = [
         GroupMatcher(CommitGroup.Defaults.breaking, [ BumpMatcher.Type "breaking" ])
         GroupMatcher(CommitGroup.Defaults.changed, [
             BumpMatcher.Type "update"
+            BumpMatcher.Type "updated"
             BumpMatcher.Type "change"
         ])
         GroupMatcher(CommitGroup.Defaults.deprecated, [
@@ -824,19 +948,44 @@ module Defaults =
             BumpMatcher.Type "rollback"
             BumpMatcher.Type "revert"
         ])
-        GroupMatcher(CommitGroup.Defaults.changed, [
-            BumpMatcher.Type "updated"
-            BumpMatcher.Type "update"
-            BumpMatcher.Type "change"
-        ])
     ]
+    /// <summary>
+    /// <code>
+    /// IgnoreCommit.SkipCi
+    /// IgnoreCommit.FooterKeyValue("changelog", "true")
+    /// IgnoreCommit.FooterKeyValue("gitnet", "ignore")
+    /// </code>
+    /// </summary>
     let ignoreCommits: IgnoreCommit list = [
+        IgnoreCommit.SkipCi
         IgnoreCommit.FooterKeyValue("changelog", "true")
         IgnoreCommit.FooterKeyValue("gitnet","ignore")
     ]
+    /// <summary>
+    /// Default <c>true</c>
+    /// </summary>
     let allowUnconventional = true
+    /// <summary>
+    /// Default <c>CommitGroup.Defaults.other</c>
+    /// </summary>
     let defaultUnmatchedGroup = CommitGroup.Defaults.other
+    /// <summary>
+    /// Default <c>true</c>
+    /// </summary>
     let allowUnmatched = true
+    /// <summary>
+    /// <code>
+    /// FileSplitting = fileSplittingStrategy
+    /// MacroGrouping = macroGroupType
+    /// Path = IO.Path.Combine(Environment.CurrentDirectory, "RELEASE_NOTES.md") |> outputPathType
+    /// Formatting = macroGroupType
+    /// GroupMatcher = groupMatchers
+    /// Ignore = ignoreCommits
+    /// AllowUnconventional = allowUnconventional
+    /// DefaultUnmatchedGroup = defaultUnmatchedGroup
+    /// AllowUnmatched = allowUnmatched
+    /// </code>
+    /// </summary>
     let outputConfig = {
         FileSplitting = fileSplittingStrategy
         MacroGrouping = macroGroupType
@@ -848,15 +997,29 @@ module Defaults =
         DefaultUnmatchedGroup = defaultUnmatchedGroup
         AllowUnmatched = allowUnmatched
     }
+    /// <summary>
+    /// <code>
+    /// Mapping = commitBumpTypeMapping
+    /// DefaultBumpStrategy = forceBumpStrategy
+    /// GenerateRelease = generateRelease
+    /// GenerateReleaseStrategy = generateReleaseStrategy
+    /// </code>
+    /// </summary>
     let bumpConfig = {
         Mapping = commitBumpTypeMapping
         DefaultBumpStrategy = forceBumpStrategy
         GenerateRelease = generateRelease
         GenerateReleaseStrategy = generateReleaseStrategy
     }
+    /// <summary>
+    /// Default <c>Url = GitHubUrlStrategy.Auto</c>
+    /// </summary>
     let githubConfig = {
         Url = GithubUrlStrategy.Auto
     }
+    /// <summary>
+    /// Default <c>{ Github = githubConfig }</c>
+    /// </summary>
     let networkConfig = {
         Github = githubConfig
     }
@@ -901,6 +1064,9 @@ module GitNetConfig =
     let initFSharp = Defaults.gitNetConfig true
     let initNonFS = Defaults.gitNetConfig false
 
+/// <summary>
+/// Convenience active patterns to elicit specific settings from a <c>GitNetConfig</c> record within pattern matches.
+/// </summary>
 module Patterns =
     let (|FileSplitting|) = _.Output.FileSplitting
     let (|ScopePrefixFormat|) = function

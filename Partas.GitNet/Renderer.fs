@@ -349,7 +349,7 @@ module Render =
                     tag.Value,commits)
             Ok result
             with
-            | :? System.ArgumentException as e ->
+            | :? System.ArgumentException ->
                 Error Error.MoreThanOneUnreleasedTag
     /// <summary>
     /// Partitions a collection of <c>tag * commit</c> tuples, and extracts the unreleased commits.
@@ -450,9 +450,20 @@ module Render =
         collection
         |> Seq.choose getBumpInScope
         |> _.ToFrozenDictionary()
+    let private sepochResults _runtime (collection: (GitCollection.Scope * (GitNetTag voption * GitNetCommit[])[]) seq) =
+        collection
+        |> Seq.map (fun (scope,values) ->
+            scope.Value,
+            values
+            |> Array.tryFind (fst >> _.IsSome)
+            |> Option.toValueOption
+            |> ValueOption.bind fst
+            )
+        |> Seq.toArray
     type Output = {
         Bumps: FrozenDictionary<string,BumpResult>
         Scopes: Scope array
+        Versions: (string * GitNetTag voption) array
     }
     /// <summary>
     /// Conducts the rendering of a <c>TagCommitCollection</c>.
@@ -463,13 +474,14 @@ module Render =
         let collection' =
             PreRenderPhase.fromTagCommitCollection runtime collection
         let aux = auxResults runtime collection'
-
+        let versions = sepochResults runtime collection'
         {
             Bumps = aux
             Scopes =
                 collection'
                 |> Seq.map (Scope.fromPreRenderedCollectionEntry runtime)
                 |> Seq.toArray
+            Versions = versions
         }
     
     

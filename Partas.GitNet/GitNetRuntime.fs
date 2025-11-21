@@ -2,6 +2,7 @@
 module Partas.GitNet.GitNetRuntime
 
 open System
+open System.Collections.Frozen
 open System.Collections.Generic
 open LibGit2Sharp
 open Partas.Tools.SepochSemver
@@ -13,6 +14,10 @@ open LibGit2Sharp.FSharp
 /// prevent boiler plate parameters being passed around.
 type GitNetRuntime(config: GitNetConfig) =
     let _repo = Repository.load config.RepositoryPath
+    let _cachedRuns = ResizeArray<FrozenDictionary<string, GitNetTag voption>>()
+    let cacheRun: (string * GitNetTag voption) array -> _ = Array.map KeyValuePair >> _.ToFrozenDictionary() >> fun input -> _cachedRuns.Add input; input
+    let getLastCacheRun () = _cachedRuns |> Seq.last
+    let getCacheRuns() = _cachedRuns |> Seq.toArray
     let githubRemote =
         _repo |> Repository.network
         |> Network.remotes
@@ -141,6 +146,10 @@ type GitNetRuntime(config: GitNetConfig) =
     member internal this.StatAssemblyFile = cacheAssemblyFile
     member internal this.StatVersionFile = cacheVersionFile
     member internal this.StatTag = cacheTag
+    member internal this.AddToCacheRuns = cacheRun
+    member this.GetLastRun() = getLastCacheRun()
+    member this.GetRuns() = getCacheRuns()
+    
 module Runtime =
     let computeEpochFooterMatcher (runtime: GitNetRuntime): Footer -> bool =
         let runtimeEpochMatches: string -> bool = fun value ->
