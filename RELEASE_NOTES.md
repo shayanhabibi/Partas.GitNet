@@ -13,7 +13,7 @@ which includes [Scopes and Epochs](#epoch-scoped-semver).
 
 **Scope** | Current Release | Commit Count
 :--- | :---: | :---:
-[**GitNet**](#gitnet) | [0.1.2](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_0.1.1..._%28GitNet%29_0.1.2) | 2 commits
+[**GitNet**](#gitnet) | [1.0.0](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_0.1.2..._%28GitNet%29_1.0.0) | 3 commits
 [**SepochSemver**](#sepochsemver) | [0.5.0](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28SepochSemver%29_0.4.2..._%28SepochSemver%29_0.5.0) | 3 commits
 [**Markdown**](#markdown) | [0.1.0](https://github.com/shayanhabibi/Partas.GitNet/commit/c822ad300480de197d5415ccecf25a216a4434fa) | None yet!
 
@@ -22,7 +22,14 @@ which includes [Scopes and Epochs](#epoch-scoped-semver).
 
 # GitNet
 
-### [UNRELEASED](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_0.1.2...HEAD)
+### [UNRELEASED](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_1.0.0...HEAD)
+
+### [1.0.0](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_0.1.2..._%28GitNet%29_1.0.0) - (2025-11-21)
+
+#### <!-- 1 --> Added
+
+* GitNet runs and dry runs provide extra info in record form. Extra Run overloads. Merge #2 by [@cabboose](https://github.com/cabboose) with [#3d09d](https://github.com/shayanhabibi/Partas.GitNet/commit/3d09d21ef742b7b34a248148137cead3226a9ec6)
+  
 
 ### [0.1.2](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_0.1.1..._%28GitNet%29_0.1.2) - (2025-08-22)
 
