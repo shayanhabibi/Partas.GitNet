@@ -56,8 +56,10 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - name: Restore tools
         run: dotnet tool restore
-      - name: Build sln
+      - name: Build slnx
         run: dotnet build -c Release docs.slnx
+      - name: Generate documentation
+        run: dotnet fsdocs build --properties Configuration=Release
       - name: Upload documentation
         uses: actions/upload-pages-artifact@v4
         with:
