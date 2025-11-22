@@ -13,7 +13,7 @@ which includes [Scopes and Epochs](#epoch-scoped-semver).
 
 **Scope** | Current Release | Commit Count
 :--- | :---: | :---:
-[**GitNet**](#gitnet) | [1.1.1](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_1.1.0..._%28GitNet%29_1.1.1) | 5 commits
+[**GitNet**](#gitnet) | [1.1.2](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_1.1.1..._%28GitNet%29_1.1.2) | 6 commits
 [**SepochSemver**](#sepochsemver) | [0.5.0](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28SepochSemver%29_0.4.2..._%28SepochSemver%29_0.5.0) | 3 commits
 [**Markdown**](#markdown) | [0.1.0](https://github.com/shayanhabibi/Partas.GitNet/commit/c822ad300480de197d5415ccecf25a216a4434fa) | None yet!
 
@@ -22,7 +22,14 @@ which includes [Scopes and Epochs](#epoch-scoped-semver).
 
 # GitNet
 
-### [UNRELEASED](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_1.1.1...HEAD)
+### [UNRELEASED](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_1.1.2...HEAD)
+
+### [1.1.2](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_1.1.1..._%28GitNet%29_1.1.2) - (2025-11-22)
+
+#### <!-- 2 --> Fixed
+
+* default behaviour is to write version to projects by [@cabboose](https://github.com/cabboose) with [#27458](https://github.com/shayanhabibi/Partas.GitNet/commit/27458e38f5d495eb60a1c19a616165e179b8a8bb)
+  
 
 ### [1.1.1](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_1.1.0..._%28GitNet%29_1.1.1) - (2025-11-22)
 
