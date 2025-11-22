@@ -182,16 +182,17 @@ type GitNetRuntime with
         | AssemblyFileManagement.Create
         | AssemblyFileManagement.UpdateIfExists when taggedSemvers |> Array.isEmpty |> not ->
             this.WriteAssemblyFiles(taggedSemvers, stageFiles = true)
-            this.VersionProjects(
-                taggedSemvers
-                |> Array.choose(function
-                    | { Sepoch = sepoch } as semver when sepoch.GetScope.IsSome ->
-                        Some (sepoch.GetScope.Value, semver)
-                    | _ -> None
-                        )
-                |> dict,
-                stageFile = stageFile
-                )
+            if this.config.WriteVersionToProjects then
+                this.VersionProjects(
+                    taggedSemvers
+                    |> Array.choose(function
+                        | { Sepoch = sepoch } as semver when sepoch.GetScope.IsSome ->
+                            Some (sepoch.GetScope.Value, semver)
+                        | _ -> None
+                            )
+                    |> dict,
+                    stageFile = stageFile
+                    )
             if commit then
                 this.CommitChanges(username, email, ?appendCommit = append)
                 this.CommitTags(taggedSemvers)
@@ -202,6 +203,19 @@ type GitNetRuntime with
             #endif
             result
         | AssemblyFileManagement.None when taggedSemvers |> Array.isEmpty |> not ->
+            if this.config.WriteVersionToProjects then
+                this.VersionProjects(
+                    taggedSemvers
+                    |> Array.choose(function
+                        | { Sepoch = sepoch } as semver when sepoch.GetScope.IsSome ->
+                            Some (sepoch.GetScope.Value, semver)
+                        | _ -> None
+                            )
+                    |> dict,
+                    stageFile = stageFile
+                    )
+                if commit then
+                    this.CommitChanges(username, email, ?appendCommit = append)
             if commit then
                 this.CommitTags(taggedSemvers)
             let result = this.DryRun()
