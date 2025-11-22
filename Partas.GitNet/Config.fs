@@ -1040,7 +1040,7 @@ module Defaults =
                 |> NonFSharp.projectType
         Bump = bumpConfig
         AssemblyFiles = FSharp.assemblyFileManagement
-        WriteVersionToProjects = false
+        WriteVersionToProjects = true
     }
 
 module ProjectFSharpConfig =
