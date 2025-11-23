@@ -9,87 +9,6 @@ open LibGit2Sharp.FSharp
 open Partas.ConventionalCommits
 
 [<RequireQualifiedAccess>]
-type FileSplittingStrategy =
-    /// <summary>
-    /// All release notes in one file
-    /// </summary>
-    | Monolith
-    /// <summary>
-    /// One release notes file per scope
-    /// </summary>
-    | PerScope
-    /// <summary>
-    /// One release notes per epoch
-    /// </summary>
-    | PerEpochMonolith
-    /// <summary>
-    /// One release notes per scope, per epoch
-    /// </summary>
-    | PerEpochPerScope
-[<RequireQualifiedAccess>]
-type ScopePrefixConfig =
-    /// <summary>
-    /// A function to make your own prefix. The function is provided
-    /// the scope name (or not if unscoped) and should return a prefix
-    /// (or not)
-    /// </summary>
-    | Templated of FSharpFunc<string option,string option>
-    /// <summary>
-    /// Prefix is the scope delimited by <c>[]</c>
-    /// </summary>
-    | SquareBrackets
-    /// <summary>
-    /// Prefix is the scope delimited by <c>()</c>
-    /// </summary>
-    | Parenthesis
-    /// <summary>
-    /// Prefix is the scope delimited by <c>&lt;&gt;</c>
-    /// </summary>
-    | AngleBrackets
-    /// <summary>
-    /// Only for GitHub. Only if your repo has the required labels.
-    /// </summary>
-    | Label
-    /// <summary>
-    /// No prefix.
-    /// </summary>
-    | None
-
-[<RequireQualifiedAccess>]
-type MacroGroupType =
-    /// <summary>
-    /// The release notes are grouped primarily by scopes.
-    /// </summary>
-    | Scoped
-    /// <summary>
-    /// The release notes are grouped by tag, with each commit
-    /// having a scope prefix
-    /// </summary>
-    | ScopePrefix of ScopePrefixConfig
-    /// <summary>
-    /// The release notes are grouped by Epoch, with an option for
-    /// subgrouping further by one of the above
-    /// </summary>
-    | Epoch
-    | EpochAnd of MacroGroupType
-[<RequireQualifiedAccess>]
-type OutputPathType =
-    /// <summary>
-    /// A path to the output file. If multi-file is done, then
-    /// the directory and file name are used as prefixes of the others.
-    /// Alternatively use PerScope with multifiling
-    /// </summary>
-    | Simple of string
-    /// <summary>
-    /// Allows you to set the path per file. This will ignore monolith
-    /// file settings.
-    /// </summary>
-    | PerScope of (string -> string)
-    /// <summary>
-    /// Writes to a "RELEASE_NOTES.md" file in the root.
-    /// </summary>
-    | Default
-[<RequireQualifiedAccess>]
 type FSharpNameResolution =
     /// <summary>
     /// The file name is used to derive the scope name
@@ -113,21 +32,17 @@ type ProjectInitialVersionStrategy =
     /// <summary>
     /// All receive same initial version
     /// </summary>
-    | Simple of string
-    /// <summary>
-    /// No initial versions
-    /// </summary>
-    | None
+    | Simple of Semver.SemVersion
     /// <summary>
     /// projects are mapped to an initial version
     /// </summary>
-    | Mapping of IDictionary<string, string>
+    | Mapping of IDictionary<string, Semver.SemVersion>
     /// <summary>
     /// Like mapping, but any that are not explicitly set in the mapping
     /// use the fallback like Simple.
     /// </summary>
-    | MappingOrSimple of mapping: IDictionary<string, string> * fallback: string
-type ProjectFSharpConfig = {
+    | MappingOrSimple of mapping: IDictionary<string, Semver.SemVersion> * fallback: Semver.SemVersion
+type ProjectConfig = {
     /// <summary>
     /// Ignored projects (by their file name without their extensions).
     /// </summary>
@@ -154,32 +69,6 @@ type ProjectFSharpConfig = {
     /// </remarks>
     NameResolution: FSharpNameResolution
 }
-
-/// <summary>
-/// Configuration for repos that are not FSharp related.
-/// </summary>
-/// <remarks>
-/// <c>PathScopeMapping</c> is a dictionary type property
-/// that contains the mapping of directories to scopes for non
-/// FSharp/dotnet projects.
-/// </remarks>
-type ProjectNoneConfig = {
-    /// <summary>
-    /// Mapping of directories relative to the git root
-    /// to scopes.
-    /// </summary>
-    PathScopeMapping: IDictionary<string, string>
-}
-[<RequireQualifiedAccess>]
-type ProjectType =
-    /// <summary>
-    /// Extra capabilities are employed to automanage scopes etc.
-    /// </summary>
-    | FSharp of ProjectFSharpConfig option
-    /// <summary>
-    /// No fsproj detection, scopes must be defined, etc.
-    /// </summary>
-    | None of ProjectNoneConfig
 
 /// <summary>
 /// Commit ignore strategies. See Remarks for overview.
@@ -297,10 +186,6 @@ type CommitConfig = {
     /// <summary>
     /// A list of ignore strategies that is applied in collection.
     /// </summary>
-    /// <remarks>
-    /// Still too early in development to measure impact of these strategies,
-    /// but we can assume they can become significant.<br/><br/>
-    /// </remarks>
     Ignore: IgnoreCommit list
 }
 [<RequireQualifiedAccess>]
@@ -334,52 +219,11 @@ type ForceBumpValue =
     /// <summary>
     /// Force bump to target
     /// </summary>
-    | Target of string
-[<RequireQualifiedAccess>]
-type GenerateReleaseStrategy =
+    | TargetString of string
     /// <summary>
-    /// Release notes are generated for each scope 
+    /// Force bump to target
     /// </summary>
-    | PerScope
-    /// <summary>
-    /// Release notes are only generated for specific scopes
-    /// </summary>
-    | ForTargets of string list
-    /// <summary>
-    /// Release notes are generated for all valid scopes together
-    /// </summary>
-    | Monolith
-    /// <summary>
-    /// No release notes are generated
-    /// </summary>
-    | None
-[<RequireQualifiedAccess>]
-type GenerateRelease =
-    /// <summary>
-    /// Will pipe out release notes for any release above minor.
-    /// </summary>
-    | MinMinor
-    /// <summary>
-    /// Will pipe out release notes for any release above major.
-    /// </summary>
-    | MinMajor
-    /// <summary>
-    /// Will pipe out release notes for any release above epoch.
-    /// </summary>
-    | MinEpoch
-    /// <summary>
-    /// Will pipe out release notes for any release above patch.
-    /// </summary>
-    /// <remarks>Same as <c>Any</c></remarks>
-    | MinPatch
-    /// <summary>
-    /// Will pipe out release notes for any release.
-    /// </summary>
-    | Any
-    /// <summary>
-    /// Will never pipe out release notes.
-    /// </summary>
-    | None
+    | TargetSemver of Semver.SemVersion
 /// <summary>
 /// Management strategy for <c>AssemblyInfo</c>/<c>AssemblyFile</c> <c>.fs</c>
 /// files.
@@ -398,6 +242,7 @@ type AssemblyFileManagement =
     /// Ignores file/info files
     /// </summary>
     | None
+
 [<RequireQualifiedAccess>]
 type ScopeStrategy =
     /// <summary>
@@ -525,24 +370,9 @@ type GroupMatcher = GroupMatcher of CommitGroup * BumpMatcher list with
 /// </summary>
 type OutputConfig = {
     /// <summary>
-    /// The file writing/creation strategy (whether to compile all
-    /// the scopes into one file or split etc).
-    /// </summary>
-    FileSplitting: FileSplittingStrategy
-    /// <summary>
-    /// The grouping strategy (whether to group by their scopes, or
-    /// epochs, first).
-    /// </summary>
-    MacroGrouping: MacroGroupType
-    /// <summary>
     /// The output path.
     /// </summary>
-    Path: OutputPathType
-    // TODO
-    /// <summary>
-    /// Null op atm.
-    /// </summary>
-    Formatting: MacroGroupType
+    Path: string
     /// <summary>
     /// The strategies that map commits to groups.
     /// </summary>
@@ -572,7 +402,7 @@ type OutputConfig with
     /// Computes a single function from the group matching list that
     /// will group a commit, or return none if unmatched by all strategies.
     /// </summary>
-    member this.ComputeGroupMatcher =
+    member internal this.ComputeGroupMatcher =
         let tryConventional: ParsedCommit -> ConventionalCommit voption = _.TryToConventionalCommit
         let tryOnConv map func =
             tryConventional
@@ -639,7 +469,7 @@ type OutputConfig with
             |> List.tryFind (fun func -> func commit |> _.IsSome)
             |> Option.defaultValue (fun _ -> None)
             <| commit
-    member this.ComputeCommitFilter(?tag: GitNetTag) =
+    member internal this.ComputeCommitFilter(?tag: GitNetTag) =
         this.Ignore
         |> List.map (function
             | IgnoreCommit.Author author ->
@@ -733,16 +563,6 @@ type BumpConfig = {
     /// The default bump strategy used.
     /// </summary>
     DefaultBumpStrategy: ForceBumpStrategy
-    /// <summary>
-    /// NO OP -
-    /// When to pipe a release note section for GH.
-    /// </summary>
-    GenerateRelease: GenerateRelease
-    /// <summary>
-    /// NO OP -
-    /// How to provide the release notes.
-    /// </summary>
-    GenerateReleaseStrategy: GenerateReleaseStrategy
 }
 
 /// <summary>
@@ -786,8 +606,8 @@ type GitNetConfig = {
     InitialVersionStrategy: ProjectInitialVersionStrategy
     /// Output configuration
     Output: OutputConfig
-    /// The repository project type (F# or not).
-    ProjectType: ProjectType
+    /// Project configuration
+    Projects: ProjectConfig
     /// Bump configuration
     Bump: BumpConfig
     /// Assembly file strategy for F# projects.
@@ -803,70 +623,36 @@ type GitNetConfig = {
 /// to various components such as file splitting, output paths, versioning, commit
 /// grouping, and release generation.
 module Defaults =
-    module NonFSharp =
-        /// <summary>
-        /// Default <c>ProjectType.None</c>
-        /// </summary>
-        let projectType = ProjectType.None
-        /// <summary>
-        /// Default <c>{ PathScopeMapping = dict [] }</c>
-        /// </summary>
-        let projectNoneConfig = {
-            PathScopeMapping = dict []
-        }
-        /// <summary>
-        /// Default <c>ScopeStrategy.Auto</c>
-        /// </summary>
-        let scopeStrategy = ScopeStrategy.Auto
-    /// <summary>
-    /// Default <c>FileSplittingStrategy.Monolith</c>
-    /// </summary>
-    let fileSplittingStrategy = FileSplittingStrategy.Monolith
-    /// <value><c>ScopePrefixConfig.SquareBrackets</c></value>
-    let scopePrefixConfig = ScopePrefixConfig.SquareBrackets
-    /// <summary>
-    /// Default <c>MacroGroupType.Scoped</c>
-    /// </summary>
-    let macroGroupType = MacroGroupType.Scoped
-    /// <summary>
-    /// Default <c>OutputPathType.Simple</c>
-    /// </summary>
-    let outputPathType = OutputPathType.Simple
     /// <summary>
     /// Default <c>ProjectInitialVersionStrategy.Simple</c>
     /// </summary>
-    let projectInitialVersion = ProjectInitialVersionStrategy.Simple "0.1.0"
-    module FSharp =
-        /// <summary>
-        /// Default <c>FSharpNameResolution.Auto</c>
-        /// </summary>
-        let fsharpNameResolution = FSharpNameResolution.Auto
-        /// <summary>
-        /// <code>
-        /// IgnoredProjects = []
-        /// AutoScoping = _.Split('.') >> Seq.last >> Some
-        /// OverrideExplicitScopes = false
-        /// NameResolution = fsharpNameResolution
-        /// </code>
-        /// </summary>
-        let projectFSharpConfig = {
-            IgnoredProjects = []
-            AutoScoping = _.Split('.') >> Seq.last >> Some
-            OverrideExplicitScopes = false
-            NameResolution = fsharpNameResolution
-        }
-        /// <summary>
-        /// Default <c>ProjectType.FSharp</c>
-        /// </summary>
-        let projectType = ProjectType.FSharp
-        /// <summary>
-        /// Default <c>AssemblyFileManagement.UpdateIfExists</c>
-        /// </summary>
-        let assemblyFileManagement = AssemblyFileManagement.UpdateIfExists
-        /// <summary>
-        /// Default <c>ScopeStrategy.Auto</c>
-        /// </summary>
-        let scopeStrategy = ScopeStrategy.Auto
+    let projectInitialVersion = ProjectInitialVersionStrategy.Simple(Semver.SemVersion(0,1,0))
+    /// <summary>
+    /// Default <c>FSharpNameResolution.Auto</c>
+    /// </summary>
+    let fsharpNameResolution = FSharpNameResolution.Auto
+    /// <summary>
+    /// <code>
+    /// IgnoredProjects = []
+    /// AutoScoping = _.Split('.') >> Seq.last >> Some
+    /// OverrideExplicitScopes = false
+    /// NameResolution = fsharpNameResolution
+    /// </code>
+    /// </summary>
+    let projectFSharpConfig = {
+        IgnoredProjects = []
+        AutoScoping = _.Split('.') >> Seq.last >> Some
+        OverrideExplicitScopes = false
+        NameResolution = fsharpNameResolution
+    }
+    /// <summary>
+    /// Default <c>AssemblyFileManagement.UpdateIfExists</c>
+    /// </summary>
+    let assemblyFileManagement = AssemblyFileManagement.UpdateIfExists
+    /// <summary>
+    /// Default <c>ScopeStrategy.Auto</c>
+    /// </summary>
+    let scopeStrategy = ScopeStrategy.Auto
 
     /// <summary>
     /// Default <c>{ Ignore = [] }</c>
@@ -880,14 +666,6 @@ module Defaults =
     /// Default <c>ForceBumpValue.Auto</c>
     /// </summary>
     let forceBumpValue = ForceBumpValue.Auto
-    /// <summary>
-    /// Default <c>GenerateReleaseStrategy.PersScope</c>
-    /// </summary>
-    let generateReleaseStrategy = GenerateReleaseStrategy.PerScope
-    /// <summary>
-    /// Default <c>GenerateRelease.None</c>
-    /// </summary>
-    let generateRelease = GenerateRelease.None
     /// <summary>
     /// <para>Epoch: EpochMatcher 'epoch'</para>
     /// <para>Major: Types - 'breaking', 'remove'</para>
@@ -987,10 +765,7 @@ module Defaults =
     /// </code>
     /// </summary>
     let outputConfig = {
-        FileSplitting = fileSplittingStrategy
-        MacroGrouping = macroGroupType
-        Path = IO.Path.Combine(Environment.CurrentDirectory, "RELEASE_NOTES.md") |> outputPathType
-        Formatting = macroGroupType
+        Path = IO.Path.Combine(Environment.CurrentDirectory, "RELEASE_NOTES.md")
         GroupMatcher = groupMatchers
         Ignore = ignoreCommits
         AllowUnconventional = allowUnconventional
@@ -1008,8 +783,6 @@ module Defaults =
     let bumpConfig = {
         Mapping = commitBumpTypeMapping
         DefaultBumpStrategy = forceBumpStrategy
-        GenerateRelease = generateRelease
-        GenerateReleaseStrategy = generateReleaseStrategy
     }
     /// <summary>
     /// Default <c>Url = GitHubUrlStrategy.Auto</c>
@@ -1026,27 +799,18 @@ module Defaults =
     let gitNetConfig isFSharp = {
         Network = networkConfig
         RepositoryPath = System.Environment.CurrentDirectory
-        Scope = if isFSharp then FSharp.scopeStrategy else NonFSharp.scopeStrategy
+        Scope = scopeStrategy
         InitialVersionStrategy =
             projectInitialVersion
         Output = outputConfig
-        ProjectType =
-            if isFSharp then
-                FSharp.projectFSharpConfig
-                |> Some
-                |> FSharp.projectType
-            else
-                NonFSharp.projectNoneConfig
-                |> NonFSharp.projectType
+        Projects = projectFSharpConfig
         Bump = bumpConfig
-        AssemblyFiles = FSharp.assemblyFileManagement
+        AssemblyFiles = assemblyFileManagement
         WriteVersionToProjects = true
     }
 
-module ProjectFSharpConfig =
-    let init = Defaults.FSharp.projectFSharpConfig
-module ProjectNoneConfig =
-    let init = Defaults.NonFSharp.projectNoneConfig
+module ProjectConfig =
+    let init = Defaults.projectFSharpConfig
 module CommitConfig =
     let init = Defaults.commitConfig
 module CommitBumpTypeMapping =
@@ -1068,40 +832,15 @@ module GitNetConfig =
 /// Convenience active patterns to elicit specific settings from a <c>GitNetConfig</c> record within pattern matches.
 /// </summary>
 module Patterns =
-    let (|FileSplitting|) = _.Output.FileSplitting
-    let (|ScopePrefixFormat|) = function
-        | { Output = { Formatting = MacroGroupType.ScopePrefix(value) } } ->
-            value
-        | _ -> ScopePrefixConfig.None
-    let (|GroupStrategy|) = function
-        | { Output = { MacroGrouping = grouping } } ->
-            grouping
     let (|OutputPath|) = function
-        | { Output = { Path = OutputPathType.Simple path } } ->
+        | { Output = { Path =  path } } ->
             fun (_: string) -> path
-        | { Output = { Path = OutputPathType.PerScope func }; RepositoryPath = repoPath } ->
-            fun inp -> System.IO.Path.Combine(repoPath,func inp)
-        | { RepositoryPath = repoPath } ->
-            fun _ -> System.IO.Path.Combine(repoPath, "RELEASE_NOTES.md")
-    let (|FSharpNameResolution|) = function
-        | { ProjectType = ProjectType.FSharp(Some { NameResolution = nameResolution }) } ->
-            Some nameResolution
-        | _ -> None
     let (|ProjectInitialVersionStrategy|) = function
         | { InitialVersionStrategy = versioning } -> versioning
-    let (|FSharpProjectConfig|) = function
-        | { ProjectType = ProjectType.FSharp(config) } -> config
-        | _ -> None
-    let (|NoneProjectConfig|) = function
-        | { ProjectType = ProjectType.None config } -> Some config
-        | _ -> None
     let (|IgnoreCommits|) = function
         | { Output = { Ignore = l } } -> l
     let (|ForceBumpStrategy|) = function
         | { Bump = { DefaultBumpStrategy = value } } -> value
-    let (|GenerateRelease|) = function
-        | { Bump = { GenerateReleaseStrategy = strategy; GenerateRelease = value } } ->
-            strategy,value
     let (|AssemblyFiles|) = function
         | { AssemblyFiles = value } -> value
     let (|ScopeStrategy|) = function

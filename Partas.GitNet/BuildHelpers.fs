@@ -101,11 +101,9 @@ let private versionProject (projectPath: string) (versionString: string) =
 let private getProjectsForMapping (mapping: IDictionary<string, SepochSemver>) (runtime: GitNetRuntime) =
         runtime.CrackRepo
         |> Seq.choose(function
-            | CrackedProject.FSharp ({
-                  GitNetOptions = {
-                  Scope = Some scope
-                }
-            } as proj)when mapping.ContainsKey(scope) ->
+            | ({
+                  GitNetOptions = { Scope = Some scope }
+                } as proj)when mapping.ContainsKey(scope) ->
                 Some proj
             | _ -> None
             )
@@ -116,7 +114,7 @@ let private getProjectsForMapping (mapping: IDictionary<string, SepochSemver>) (
             )
 
 type GitNetRuntime with
-    member this.VersionProject(project: FSharpCrackedProject, version: Semver.SemVersion, ?stageFile: bool, ?cacheDisposal: bool) =
+    member this.VersionProject(project: CrackedProject, version: Semver.SemVersion, ?stageFile: bool, ?cacheDisposal: bool) =
         let projectPath = Path.combine this.rootDir project.ProjectFileName
         let stageFile = defaultArg stageFile false
         let cacheDisposal = defaultArg cacheDisposal true

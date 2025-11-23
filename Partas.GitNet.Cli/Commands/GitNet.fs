@@ -128,7 +128,7 @@ type GitNet() =
                         |> Option.defaultValue
                             Defaults.FSharp.fsharpNameResolution
                     let ignored = ignored
-                    { ProjectFSharpConfig.init with
+                    { ProjectConfig.init with
                           NameResolution = namingResolution
                           IgnoredProjects = ignored |> Array.toList }
                     |> Some
@@ -136,7 +136,7 @@ type GitNet() =
                     assemblyFiles
                 | None, Some proj ->
                     ProjectType.None proj, Defaults.FSharp.assemblyFileManagement
-                | _ -> ProjectFSharpConfig.init |> Some |> ProjectType.FSharp, Defaults.FSharp.assemblyFileManagement
+                | _ -> ProjectConfig.init |> Some |> ProjectType.FSharp, Defaults.FSharp.assemblyFileManagement
             let ignoredCommits =
                 commits
                 |> Option.bind _.Ignored
@@ -184,7 +184,7 @@ type GitNet() =
                 GitNetConfig.init (fst projectType |> _.IsFSharp) with
                     RepositoryPath = repoPath
                     AssemblyFiles = snd projectType
-                    ProjectType = fst projectType
+                    Projects = fst projectType
                     Network = { Github = {
                         Url = githubUrl
                     } }
@@ -218,7 +218,7 @@ type GitNet() =
             {
                 GitNetConfig.init true with
                     RepositoryPath = repoPath
-                    ProjectType = projectType
+                    Projects = projectType
                     Bump.DefaultBumpStrategy = autoBump
                     Output.Path = outputPath
                     Scope = scopeStrat
