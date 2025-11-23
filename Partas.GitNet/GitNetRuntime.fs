@@ -47,39 +47,7 @@ type GitNetRuntime(config: GitNetConfig) =
             |> function true -> ValueNone | _ -> ValueSome path
             )
         |> ValueOption.defaultValue config.RepositoryPath
-    let writeCommitMessage =
-        match config.Output.Formatting with
-        | MacroGroupType.EpochAnd(MacroGroupType.ScopePrefix prefixConfig)
-        | MacroGroupType.ScopePrefix prefixConfig ->
-            match prefixConfig with
-            | ScopePrefixConfig.Templated stringOptionFunc ->
-                fun scope message ->
-                    scope |> stringOptionFunc
-                    |> Option.map (sprintf " %s")
-                    |> Option.defaultValue ""
-                    |> fun v -> $"%s{v}%s{message}"
-            | ScopePrefixConfig.SquareBrackets ->
-                fun scope message ->
-                    scope |> Option.map (sprintf "[%s] ")
-                    |> Option.defaultValue ""
-                    |> fun v -> $"{v}{message}"
-            | ScopePrefixConfig.Parenthesis ->
-                fun scope message ->
-                    scope |> Option.map (sprintf "(%s) ")
-                    |> Option.defaultValue ""
-                    |> fun v -> $"{v}{message}"
-            | ScopePrefixConfig.AngleBrackets ->
-                fun scope message ->
-                    scope |> Option.map (sprintf "<%s> ")
-                    |> Option.defaultValue ""
-                    |> fun v -> $"{v}{message}"
-            | ScopePrefixConfig.Label ->
-                // TODO
-                fun _ message -> message
-            | ScopePrefixConfig.None ->
-                fun _ message -> message
-        | _ ->
-            fun _ message -> message
+    let writeCommitMessage = fun _ message -> message
     let disposals = ResizeArray<unit -> unit>()
     let mutable commitHasBeenMade = false
     member val repo = _repo with get
@@ -172,7 +140,7 @@ type GitNetRuntime(config: GitNetConfig) =
     /// </summary>
     member this.GetRuns() = getCacheRuns()
     
-module Runtime =
+module internal Runtime =
     let computeEpochFooterMatcher (runtime: GitNetRuntime): Footer -> bool =
         let runtimeEpochMatches: string -> bool = fun value ->
             runtime.config.Bump.Mapping.Epoch
