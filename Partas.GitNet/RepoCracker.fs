@@ -278,12 +278,22 @@ module internal CrackedProject =
         let autoBumpBranchName = Projects.tryGetAutoBumpBranchName proj |> ValueOption.toOption
         let version = proj |> Projects.tryGetVersion |> ValueOption.toOption
         {
+            RepoRoot = repoDir
             ProjectDirectory = makeRelativeFromRepo absoluteProjectDirectory
             ProjectFileName = makeRelativeFromRepo path
             SourceFiles = Seq.toList sourceFiles
             AssemblyFile = assemblyFile
             GitNetOptions = GitNetOptions.create scope initialVersion autoBump epoch autoBumpBranchName version
         }
+
+[<RequireQualifiedAccess>]
+module CrackRepo =
+    type Error =
+        | NoScope
+        | NoAssemblyFileFound
+        | NoSepochSemver
+        | Exn of exn
+        
 
 type GitNetRuntime with
     /// <summary>
@@ -323,9 +333,9 @@ type GitNetRuntime with
     member this.WriteAssemblyFiles (versions: SepochSemver seq, ?stageFiles: bool) =
         let stageFiles = defaultArg stageFiles false
         this.CrackRepo
-        |> Seq.iter(function
-            | { GitNetOptions = { Scope = None } } -> ()
-            | { AssemblyFile = None } when this.config.AssemblyFiles.IsCreate |> not -> ()
+        |> Seq.map(function
+            | { GitNetOptions = { Scope = None } } -> CrackRepo.Error.NoScope |> Error
+            | { AssemblyFile = None } when this.config.AssemblyFiles.IsCreate |> not -> CrackRepo.Error.NoAssemblyFileFound |> Error
             | { ProjectDirectory = path
                 AssemblyFile = assemblyFile
                 GitNetOptions = { Scope = Some scop } } as proj ->
@@ -366,10 +376,13 @@ type GitNetRuntime with
                     if stageFiles then
                         this.repo.Index.Add (Path.GetRelativePath(this.rootDir, assemblyPath))
                     this.StatAssemblyFile assemblyPath
+                    Ok()
                     with e ->
                         e
                         |> printfn "%A"
-                | _ -> ()
+                        CrackRepo.Error.Exn e
+                        |> Error
+                | _ -> CrackRepo.Error.NoSepochSemver |> Error
             )
     /// <summary>
     /// Given a dictionary of <c>Scope</c>'s to <c>SepochSemver</c>'s, will generate <c>AssemblyFile</c>'s using the
@@ -392,4 +405,13 @@ type GitNetRuntime with
         |> fst
         |> _.Values
         |> this.WriteAssemblyFiles
+        #if DEBUG
+        |> Seq.iter(function
+            | Error (CrackRepo.Exn e) -> printfn $"%A{e}"
+            | Error e -> printfn $"%A{e}"
+            | _ -> ()
+            )
+        #else
+        |> ignore
+        #endif
         mapping

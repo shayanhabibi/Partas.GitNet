@@ -140,7 +140,7 @@ the ecosystems marketed change does not change the Engine packages API*
 
 let private dLink (content: string) link = Markdown.directLink link { content } 
 module Commit =
-    let writeCommit (runtime: GitNetRuntime) (scope: Scope) (commit: Commit) =
+    let writeCommit (runtime: GitNetRuntime) (commit: Commit) =
         // TODO - first time commit
         let commitSha =
             runtime.githubUrlFactory
@@ -152,13 +152,8 @@ module Commit =
                 commit.CommitSha.Substring(0,5)
                 |> Markdown.literal
                 )
-        let commitMsg =
-            // We have pre computed the function in the runtime
-            runtime.WriteCommitToMarkdown
-                (scope.ScopeName |> ValueOption.toOption)
-                commit.Message
         Markdown.para {
-            commitMsg
+            commit.Message
             " by "
             match runtime.githubUrlFactory with
             | Some factory ->
@@ -183,7 +178,7 @@ module Tag =
                 $" - ({date})"
             | _ -> ""
         }
-    let writeCommitGroups runtime scope (tag: Tag) =
+    let writeCommitGroups runtime (tag: Tag) =
         let writeGroup (group: KeyValuePair<CommitGroup, Commit list>) =
             let group = group.Key
             [
@@ -208,7 +203,7 @@ module Tag =
             let unorderedList content = MarkdownParagraph.ListBlock(MarkdownListKind.Unordered, content, None)
             let commits =
                 group.Value
-                |> List.map (Commit.writeCommit runtime scope >> List.singleton)
+                |> List.map (Commit.writeCommit runtime >> List.singleton)
                 |> unorderedList
 
             [
@@ -230,8 +225,8 @@ module Tag =
         |> Seq.collect id
         |> Seq.toList
     
-    let writeTag runtime (scope: Scope) (tag: Tag) =
-        let commitGroups = writeCommitGroups runtime scope tag
+    let writeTag runtime (tag: Tag) =
+        let commitGroups = writeCommitGroups runtime tag
         if commitGroups |> List.isEmpty
         then commitGroups
         else
@@ -261,13 +256,13 @@ module Scope =
         [
             heading
             scope.ScopeUnreleased
-            |> List.map (Commit.writeCommit runtime scope)
+            |> List.map (Commit.writeCommit runtime)
             |> List.map List.singleton
             |> fun content -> MarkdownParagraph.ListBlock(MarkdownListKind.Unordered, content, None)
         ]
     let writeTags runtime (scope: Scope) =
         scope.ScopeTags
-        |> List.map (Tag.writeTag runtime scope)
+        |> List.map (Tag.writeTag runtime)
         |> List.collect id
 
     let writeScope runtime scope =
