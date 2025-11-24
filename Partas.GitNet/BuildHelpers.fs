@@ -82,7 +82,6 @@ module CrackedProject =
     /// Stages the project file (.fsproj)
     let stageProjectFile (runtime: GitNetRuntime) (proj: CrackedProject) =
         proj.ProjectFileName
-        |> Path.combine proj.ProjectDirectory
         |> List.singleton
         |> stageFiles runtime
         |> Result.map(fun _ -> proj)
