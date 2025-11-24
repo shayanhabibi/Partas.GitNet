@@ -28,8 +28,6 @@ type BumpType =
 
 /// Record of details relating to a FSharp project.
 type CrackedProject = {
-    /// The path to the project root
-    RepoRoot: string
     /// The project directory path from the repo root.
     ProjectDirectory: string
     /// The project file path (.fsproj extension) relative to repo root.

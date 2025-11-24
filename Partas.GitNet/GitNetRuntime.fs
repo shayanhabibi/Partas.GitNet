@@ -47,6 +47,7 @@ type GitNetRuntime(config: GitNetConfig) =
             |> function true -> ValueNone | _ -> ValueSome path
             )
         |> ValueOption.defaultValue config.RepositoryPath
+    let writeCommitMessage = fun _ message -> message
     let disposals = ResizeArray<unit -> unit>()
     let mutable commitHasBeenMade = false
     member val repo = _repo with get
@@ -67,12 +68,10 @@ type GitNetRuntime(config: GitNetConfig) =
     interface System.IDisposable with
         member this.Dispose() =
             Repository.dispose _repo
+            
     member this.Disposals = disposals
-    member this.StageFiles(files: string list) =
-        let index = this.repo |> Repository.index
-        try
-            for file in files do index |> Index.addFile file
-        with e -> printfn $"Failed to stage files:\n %A{e}"
+    member internal this.WriteCommitToMarkdown scope commit =
+        writeCommitMessage scope commit
     /// <summary>
     /// Commits staged files.
     /// </summary>
@@ -82,7 +81,10 @@ type GitNetRuntime(config: GitNetConfig) =
     /// <param name="date">Date</param>
     /// <param name="appendCommit">Whether to append to last commit</param>
     member this.CommitChanges(?username,?email,?message: string, ?date: DateTimeOffset, ?appendCommit: bool) =
-        let appendCommit = appendCommit |> Option.defaultValue commitHasBeenMade
+        let appendCommit =
+            if commitHasBeenMade then
+                defaultArg appendCommit true
+            else false
         let username = defaultArg username "GitHub Action"
         let email = defaultArg email "41898282+github-actions[bot]@users.noreply.github.com"
         let date = defaultArg date DateTimeOffset.Now
@@ -108,20 +110,20 @@ type GitNetRuntime(config: GitNetConfig) =
         tags
         |> Seq.iter (fun sepochSemver ->
             try
-            let semverString = sepochSemver.ToString()
+            let sepochSemver = sepochSemver.ToString()
             Repository.applyTag
-                semverString
+                sepochSemver
                 this.repo
             |> ignore
-            cacheTag semverString
+            cacheTag sepochSemver
             with
             | :? NameConflictException as e ->
                 printfn $"Duplicate tag %A{sepochSemver}:\n%A{e}"
             )
     member internal this.CategoriseCommits(commits: GitNetCommit seq) =
-        let matcher = this.config.Output.ComputeGroupMatcher
+        let config = this.config.Output
         commits
-        |> Seq.map (GitNetCommit.parsed >> matcher)
+        |> Seq.map (GitNetCommit.parsed >> config.ComputeGroupMatcher)
         |> Seq.zip commits
     member internal this.StatAssemblyFile = cacheAssemblyFile
     member internal this.StatVersionFile = cacheVersionFile

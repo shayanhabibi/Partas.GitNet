@@ -369,7 +369,7 @@ module Render =
     /// Functions relating to the rendering of scopes.
     /// </summary>
     module Scope =
-        let internal fromPreRenderedCollectionEntry config (scopeName: GitCollection.Scope, entries: (GitNetTag voption * GitNetCommit array) array) =
+        let fromPreRenderedCollectionEntry config (scopeName: GitCollection.Scope, entries: (GitNetTag voption * GitNetCommit array) array) =
             let unreleasedCommits, taggedCommits =
                 entries |> partitionUnreleased 
             let scopeTags =
@@ -470,7 +470,7 @@ module Render =
     /// </summary>
     /// <param name="runtime">GitNetRuntime - Provides details as to the categorisation behaviour of commits in tags.</param>
     /// <param name="collection">TagCommitCollection - The collection to render.</param>
-    let internal fromTagCommitCollection runtime collection =
+    let fromTagCommitCollection runtime collection =
         let collection' =
             PreRenderPhase.fromTagCommitCollection runtime collection
         let aux = auxResults runtime collection'

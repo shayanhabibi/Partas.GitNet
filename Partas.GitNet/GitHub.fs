@@ -63,9 +63,5 @@ type UrlFactory(urlRoot: string) =
     new (ghRemote: GitHubRemote) = UrlFactory(urlRoot ghRemote)
 
 module UrlFactory =
-    module Author =
-        let fromString (factory: UrlFactory) author = factory.CreateAuthor(author)
-    module Commit =
-        let fromSha (factory: UrlFactory) sha = factory.CreateCommit(sha)
-        let fromGitNetCommit (factory: UrlFactory) (commit: GitNetCommit) = factory.Create(commit)
-        let fromCommit (factory: UrlFactory) (commit: Commit) = factory.Create(commit)
+    let createAuthor (factory: UrlFactory) author = factory.CreateAuthor(author)
+    let createCommit (factory: UrlFactory) (commit: string) = factory.CreateCommit(commit)

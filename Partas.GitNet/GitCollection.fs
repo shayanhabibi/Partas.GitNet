@@ -1,5 +1,4 @@
-﻿/// Internal library and test suite usage only.
-module Partas.GitNet.GitCollection
+﻿module Partas.GitNet.GitCollection
 
 open System
 open System.Collections.Frozen
