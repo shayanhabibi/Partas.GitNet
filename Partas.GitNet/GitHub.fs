@@ -61,7 +61,3 @@ type UrlFactory(urlRoot: string) =
     member this.CreateAuthor(author: string) =
         author |> sprintf "https://github.com/%s"
     new (ghRemote: GitHubRemote) = UrlFactory(urlRoot ghRemote)
-
-module UrlFactory =
-    let createAuthor (factory: UrlFactory) author = factory.CreateAuthor(author)
-    let createCommit (factory: UrlFactory) (commit: string) = factory.CreateCommit(commit)
