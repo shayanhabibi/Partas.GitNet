@@ -13,7 +13,7 @@ which includes [Scopes and Epochs](#epoch-scoped-semver).
 
 **Scope** | Current Release | Commit Count
 :--- | :---: | :---:
-[**GitNet**](#gitnet) | [2.0.2](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_2.0.1..._%28GitNet%29_2.0.2) | 12 commits
+[**GitNet**](#gitnet) | [2.0.3](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_2.0.2..._%28GitNet%29_2.0.3) | 13 commits
 [**SepochSemver**](#sepochsemver) | [0.5.0](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28SepochSemver%29_0.4.2..._%28SepochSemver%29_0.5.0) | 3 commits
 [**Markdown**](#markdown) | [0.1.0](https://github.com/shayanhabibi/Partas.GitNet/commit/c822ad300480de197d5415ccecf25a216a4434fa) | None yet!
 
@@ -22,7 +22,14 @@ which includes [Scopes and Epochs](#epoch-scoped-semver).
 
 # GitNet
 
-### [UNRELEASED](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_2.0.2...HEAD)
+### [UNRELEASED](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_2.0.3...HEAD)
+
+### [2.0.3](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_2.0.2..._%28GitNet%29_2.0.3) - (2025-11-24)
+
+#### <!-- 2 --> Fixed
+
+* CrackedProject modification appropriately creates new elements prn by [@shayanhabibi](https://github.com/shayanhabibi) with [#ad417](https://github.com/shayanhabibi/Partas.GitNet/commit/ad417eb20b4e3d33df20902fc6f95c866f6e0ad4)
+  
 
 ### [2.0.2](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_2.0.1..._%28GitNet%29_2.0.2) - (2025-11-24)
 
