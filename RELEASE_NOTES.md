@@ -13,7 +13,7 @@ which includes [Scopes and Epochs](#epoch-scoped-semver).
 
 **Scope** | Current Release | Commit Count
 :--- | :---: | :---:
-[**GitNet**](#gitnet) | [1.2.0](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_1.1.2..._%28GitNet%29_1.2.0) | 9 commits
+[**GitNet**](#gitnet) | [2.0.0](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_1.2.0..._%28GitNet%29_2.0.0) | 10 commits
 [**SepochSemver**](#sepochsemver) | [0.5.0](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28SepochSemver%29_0.4.2..._%28SepochSemver%29_0.5.0) | 3 commits
 [**Markdown**](#markdown) | [0.1.0](https://github.com/shayanhabibi/Partas.GitNet/commit/c822ad300480de197d5415ccecf25a216a4434fa) | None yet!
 
@@ -22,7 +22,14 @@ which includes [Scopes and Epochs](#epoch-scoped-semver).
 
 # GitNet
 
-### [UNRELEASED](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_1.2.0...HEAD)
+### [UNRELEASED](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_2.0.0...HEAD)
+
+### [2.0.0](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_1.2.0..._%28GitNet%29_2.0.0) - (2025-11-24)
+
+#### <!-- 1 --> Added
+
+* Reduce API surface and introduce project file helpers (#7) by [@cabboose](https://github.com/cabboose) with [#7f78b](https://github.com/shayanhabibi/Partas.GitNet/commit/7f78b41e01f13a55e8f8383092cc83d17e49f447)
+  
 
 ### [1.2.0](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_1.1.2..._%28GitNet%29_1.2.0) - (2025-11-24)
 
@@ -98,10 +105,10 @@ which includes [Scopes and Epochs](#epoch-scoped-semver).
 
 #### <!-- 6 --> Others
 
-* Init by [@cabboose](https://github.com/cabboose) with [#cb67c](https://github.com/shayanhabibi/Partas.GitNet/commit/cb67cb3aff5439a7c97c55c60e0b8b2b90abd995)
+* init by [@cabboose](https://github.com/cabboose) with [#0b1de](https://github.com/shayanhabibi/Partas.GitNet/commit/0b1de606a16bf4a973759662fd1dd080de024905)
   
 
-* init by [@cabboose](https://github.com/cabboose) with [#0b1de](https://github.com/shayanhabibi/Partas.GitNet/commit/0b1de606a16bf4a973759662fd1dd080de024905)
+* Init by [@cabboose](https://github.com/cabboose) with [#cb67c](https://github.com/shayanhabibi/Partas.GitNet/commit/cb67cb3aff5439a7c97c55c60e0b8b2b90abd995)
   
 
 <div align="right"><a href="#quick-navigation">(back to top)</a></div>
