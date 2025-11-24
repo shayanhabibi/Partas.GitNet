@@ -76,22 +76,26 @@ module CrackedProject =
     /// Stages all compiled files
     let stageCompiledFiles (runtime: GitNetRuntime) (proj: CrackedProject) =
         getCompiledFilePaths proj
+        |> List.map (Path.combine proj.ProjectDirectory)
         |> stageFiles runtime
         |> Result.map(fun _ -> proj)
     /// Stages the project file (.fsproj)
     let stageProjectFile (runtime: GitNetRuntime) (proj: CrackedProject) =
         proj.ProjectFileName
+        |> Path.combine proj.ProjectDirectory
         |> List.singleton
         |> stageFiles runtime
         |> Result.map(fun _ -> proj)
     /// Stages all Content files
     let stageContentFiles runtime proj =
         getContentFilePaths proj
+        |> List.map (Path.combine proj.ProjectDirectory)
         |> stageFiles runtime
         |> Result.map(fun _ -> proj)
     /// Stages all 'None' files
     let stageNoneFiles runtime proj =
         getNoneFilePaths proj
+        |> List.map (Path.combine proj.ProjectDirectory)
         |> stageFiles runtime
         |> Result.map(fun _ -> proj)
     /// Stages the project file, the compiled files, and the content files (does not stage None files)
