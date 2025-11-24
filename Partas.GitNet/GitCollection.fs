@@ -1,5 +1,4 @@
-﻿/// Internal library and test suite usage only.
-module Partas.GitNet.GitCollection
+﻿module Partas.GitNet.GitCollection
 
 open System
 open System.Collections.Frozen
@@ -315,12 +314,17 @@ module TagCommitCollection =
         let crackedRepos: CrackedProject seq = runtime.CrackRepo
         let scopes: ScopePathDictionary =
             crackedRepos
-            |> Seq.choose (fun crackedProject ->
+            |> Seq.choose (fun proj ->
+                match proj with
+                | CrackedProject.FSharp crackedProject ->
                     crackedProject.GitNetOptions.Scope |> function
                         | Some scope ->
                             KeyValuePair(Scope scope, crackedProject.ProjectDirectory)
                             |> Some
                         | _ -> None
+                | CrackedProject.NonFSharp nonFsCrackedProject ->
+                    KeyValuePair(Scope nonFsCrackedProject.Scope, nonFsCrackedProject.ProjectDirectory)
+                    |> Some
                 )
             |> toFrozenDictionary
         let tagCollection = TagCollection.load runtime

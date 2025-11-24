@@ -48,7 +48,7 @@ type Info() =
         let runtime = new GitNetRuntime({
             GitNetConfig.initFSharp with
                 RepositoryPath = settings.path
-                Projects =
+                ProjectType =
                     {
                         Defaults.FSharp.projectFSharpConfig with
                             AutoScoping = function
@@ -77,8 +77,8 @@ type Info() =
                     CrackedProject.getFSharp
                     >> ValueOption.filter _.GitNetOptions.Scope.IsSome
                     >> ValueOption.map (function
-                        { CrackedProject.ProjectFileName = projectFileName
-                          CrackedProject.GitNetOptions = { Scope = scope } } ->
+                        { FSharpCrackedProject.ProjectFileName = projectFileName
+                          FSharpCrackedProject.GitNetOptions = { Scope = scope } } ->
                             {
                                 Path = System.IO.Path.GetRelativePath(runtime.rootDir, projectFileName)
                                 Scope = scope.Value
