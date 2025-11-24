@@ -13,7 +13,7 @@ which includes [Scopes and Epochs](#epoch-scoped-semver).
 
 **Scope** | Current Release | Commit Count
 :--- | :---: | :---:
-[**GitNet**](#gitnet) | [1.1.2](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_1.1.1..._%28GitNet%29_1.1.2) | 6 commits
+[**GitNet**](#gitnet) | [1.2.0](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_1.1.2..._%28GitNet%29_1.2.0) | 9 commits
 [**SepochSemver**](#sepochsemver) | [0.5.0](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28SepochSemver%29_0.4.2..._%28SepochSemver%29_0.5.0) | 3 commits
 [**Markdown**](#markdown) | [0.1.0](https://github.com/shayanhabibi/Partas.GitNet/commit/c822ad300480de197d5415ccecf25a216a4434fa) | None yet!
 
@@ -22,7 +22,22 @@ which includes [Scopes and Epochs](#epoch-scoped-semver).
 
 # GitNet
 
-### [UNRELEASED](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_1.1.2...HEAD)
+### [UNRELEASED](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_1.2.0...HEAD)
+
+### [1.2.0](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_1.1.2..._%28GitNet%29_1.2.0) - (2025-11-24)
+
+#### <!-- 1 --> Added
+
+* CrackedProject helpers for modifying project files and staging files by [@cabboose](https://github.com/cabboose) with [#8f1f2](https://github.com/shayanhabibi/Partas.GitNet/commit/8f1f2127bbe3bd748477d0076088723035e0fe49)
+  
+
+#### <!-- 6 --> Others
+
+* Revert "refactor!: Slim API and add proj helpers  " (#6) by [@cabboose](https://github.com/cabboose) with [#d8cac](https://github.com/shayanhabibi/Partas.GitNet/commit/d8cacf7fb4b50c2748662b75a4c7f6a851be66ff)
+  
+
+* slim the API down to only work for FSharp projects/solutions by [@cabboose](https://github.com/cabboose) with [#4e003](https://github.com/shayanhabibi/Partas.GitNet/commit/4e003b6e72dc1a4b1b62bd555a398f5c4b5143b2)
+  
 
 ### [1.1.2](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_1.1.1..._%28GitNet%29_1.1.2) - (2025-11-22)
 
