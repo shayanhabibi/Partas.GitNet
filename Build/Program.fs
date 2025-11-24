@@ -79,7 +79,7 @@ let gitnetConfig = {
         Projects =
             let ignoreProject: string -> string = Path.GetFileNameWithoutExtension
             {
-                ProjectFSharpConfig.init with
+                ProjectConfig.init with
                     IgnoredProjects = List.map ignoreProject [
                         Files.``Build.fsproj``
                         Files.``Partas.GitNet.Cli``.``Partas.GitNet.Cli.fsproj``
@@ -87,8 +87,6 @@ let gitnetConfig = {
                         Files.Tests.``Partas.Tools.SepochSemver.Tests``.``Partas.Tools.SepochSemver.Tests.fsproj``
                     ]
             }
-            |> Some
-            |> ProjectType.FSharp
 }
 let runtime = lazy new GitNetRuntime(gitnetConfig)
 let crackedProjects =
@@ -97,7 +95,7 @@ let crackedProjects =
         |> _.CrackRepo
         |> Seq.choose (
             function
-                | CrackedProject.FSharp { GitNetOptions = { Scope = Some _ } } as proj ->
+                | { GitNetOptions = { Scope = Some _ } } as proj ->
                     Some proj
                 | _ -> None)
 
