@@ -18,15 +18,13 @@ let test =
     let config = {
         GitNetConfig.initFSharp with
             RepositoryPath = path
-            ProjectType =
-                { Defaults.FSharp.projectFSharpConfig with
+            Projects =
+                { Defaults.projectFSharpConfig with
                     AutoScoping =
                         _.Split('.').Last()
                         >> function
                             "ScratchTests" -> None
                             | scope -> Some scope }
-                |> Some
-                |> ProjectType.FSharp
     }
     let runtime = new GitNetRuntime(config)
     let collection =

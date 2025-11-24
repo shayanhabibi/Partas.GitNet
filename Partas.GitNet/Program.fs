@@ -45,15 +45,11 @@ type GitNetRuntime with
         let renderMarkup = writeRendering this render
         let projs =
             this.CrackRepo
-            |> Seq.filter _.IsFSharp
-            |> Seq.choose (function
-                CrackedProject.FSharp proj ->
-                    match proj.GitNetOptions with
+            |> Seq.choose (_.GitNetOptions >> function
                     | { Scope = Some scope; InitialVersion = Some initVersion } ->
                         KeyValuePair(scope, initVersion)
                         |> Some
                     | _ -> None
-                | _ -> None
                     )
             |> toFrozenDictionary
         let initialVersionForScope (scope: string) =
@@ -73,27 +69,27 @@ type GitNetRuntime with
                     match bump,history with
                     | _, GitNetTag.GitTag value ->
                         failwithf $"A non-semver tag has leaked through, please raise an issue: %A{value.CanonicalName}"
-                    | BumpType.Patch, GitNetTag.GitNetTag { SepochSemver = semver } ->
+                    | BumpType.Patch, GitNetTag.SepochTag(sepochSemver = semver) ->
                         scope,
                         semver
                         |> SepochSemver.bumpPatch
                         |> Some
-                    | BumpType.Minor, GitNetTag.GitNetTag { SepochSemver = semver } ->
+                    | BumpType.Minor, GitNetTag.SepochTag(sepochSemver = semver) ->
                         scope,
                         semver
                         |> SepochSemver.bumpMinor
                         |> Some
-                    | BumpType.Major, GitNetTag.GitNetTag { SepochSemver = semver } ->
+                    | BumpType.Major, GitNetTag.SepochTag(sepochSemver = semver) ->
                         scope,
                         semver
                         |> SepochSemver.bumpMajor
                         |> Some
                         
-                    | BumpType.Epoch s, GitNetTag.GitNetTag { SepochSemver = semver } ->
+                    | BumpType.Epoch s, GitNetTag.SepochTag(sepochSemver = semver) ->
                         scope,
                         s |> SepochSemver.bumpEpoch semver
                         |> Some
-                    | _, GitNetTag.SemVerTag { Semver = semver } ->
+                    | _, GitNetTag.SemVerTag(semver = semver) ->
                         scope,
                         {
                             Sepoch = Sepoch.Scope scope
@@ -146,9 +142,7 @@ type GitNetRuntime with
         let taggedSemvers=
             this.CrackRepo
             |> Seq.choose(
-                CrackedProject.getFSharp
-                >> ValueOption.bind (
-                    CrackedProject.FSharp.gitNetOptions
+                    CrackedProject.gitNetOptions
                     >> function
                         {
                             AutoBump = true
@@ -163,11 +157,9 @@ type GitNetRuntime with
                                  | Some key -> bumps.ContainsKey(key) 
                                  | _ -> false
                              branchNameIsFine && bumpContainsScope
-                        ) -> ValueSome bumps[scope.Value]
-                        | _ -> ValueNone
+                        ) -> Some bumps[scope.Value]
+                        | _ -> None
                     )
-                >> ValueOption.toOption
-                )
             |> Seq.toArray
         
         #if DEBUG

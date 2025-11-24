@@ -27,7 +27,9 @@ type BumpType =
     | Epoch of string
 
 /// Record of details relating to a FSharp project.
-type FSharpCrackedProject = {
+type CrackedProject = {
+    /// The path to the project root
+    RepoRoot: string
     /// The project directory path from the repo root.
     ProjectDirectory: string
     /// The project file path (.fsproj extension) relative to repo root.
@@ -40,18 +42,6 @@ type FSharpCrackedProject = {
     GitNetOptions: CrackedProject.GitNetOptions
 }
 
-/// Record of details for a non FSharp project (or where a project is, and its name).
-type NonFSCrackedProject = {
-    /// The directory used to filter commits.
-    ProjectDirectory: string
-    /// The scope name for the commits.
-    Scope: string
-}
-
-[<RequireQualifiedAccess>]
-type CrackedProject =
-    | FSharp of FSharpCrackedProject
-    | NonFSharp of NonFSCrackedProject
 
 module CrackedProject =
     /// Properties that can be set in a .fsproj
@@ -77,21 +67,11 @@ module CrackedProject =
         /// </remarks>
         Version: Semver.SemVersion option
     }
-    let getFSharp = function
-        | CrackedProject.FSharp proj -> ValueSome proj
-        | _ -> ValueNone
-    let getNonFSharp = function
-        | CrackedProject.NonFSharp proj -> ValueSome proj
-        | _ -> ValueNone
-    module FSharp =
-        let projectDirectory: FSharpCrackedProject -> _ = _.ProjectDirectory
-        let projectFileName = _.ProjectFileName
-        let sourceFiles = _.SourceFiles
-        let assemblyFile = _.AssemblyFile >> ValueOption.ofOption
-        let gitNetOptions = _.GitNetOptions
-    module NonFSharp =
-        let projectDirectory = _.ProjectDirectory
-        let scope: NonFSCrackedProject -> _ = _.Scope
+    let projectDirectory: CrackedProject -> _ = _.ProjectDirectory
+    let projectFileName = _.ProjectFileName
+    let sourceFiles = _.SourceFiles
+    let assemblyFile = _.AssemblyFile >> ValueOption.ofOption
+    let gitNetOptions = _.GitNetOptions
 
 /// A record of the parsed commit, and the git object it was
 /// derived from.
@@ -103,11 +83,11 @@ type GitNetCommit = {
 /// A DU of the parsed tag, and the git object it was derived from.
 type GitNetTag =
     /// A SepochSemver tag
-    | GitNetTag of GitNetTag.Sepoch
+    | SepochTag of ref: Tag * sepochSemver: SepochSemver
     /// A Semver tag
-    | SemVerTag of GitNetTag.Semver
+    | SemVerTag of ref: Tag * semver: Semver.SemVersion
     /// Non-Semver compatible tag
-    | GitTag of Tag
+    | GitTag of ref: Tag
 
 /// <summary>
 /// CommitGroup. You can define specific settings for a commit group,
@@ -118,29 +98,30 @@ type GitNetTag =
 /// <remarks>
 /// All defaults are None/false; <c>HeadingLevel</c> default is <c>4</c>.
 /// </remarks>
-[<AbstractClass>]
-type CommitGroup() =
-    abstract Title: string
-    abstract Position: int option
-    abstract HeadingLevel: int
-    abstract Prelude: string option
-    abstract Postfix: string option
-    abstract CountOnly: bool
-    
-    default this.Position = None
-    default this.HeadingLevel = 4
-    default this.Prelude = None
-    default this.Postfix = None
-    default this.CountOnly = false
-    
-module CommitGroup =
-    let createSimple text = { new CommitGroup() with member this.Title = text }
-    module Defaults =
-        let private makeDefault title position = {
-            new CommitGroup() with
-                member this.Title = title
-                member this.Position = Some position
+type CommitGroup = {
+    Title: string
+    Position: int option
+    HeadingLevel: int
+    Prelude: string option
+    Postfix: string option
+    CountOnly: bool
+} with
+    static member Create(title: string, ?position, ?headingLevel, ?prelude, ?postfix, ?countOnly) =
+        let headingLevel = defaultArg headingLevel 4
+        let countOnly = defaultArg countOnly false
+        {
+            Title = title
+            Position = position
+            HeadingLevel = headingLevel
+            Prelude = prelude
+            Postfix = postfix
+            CountOnly = countOnly
         }
+module CommitGroup =
+    let init text = CommitGroup.Create(text)
+    module Defaults =
+        let private makeDefault title position =
+            CommitGroup.Create(title, position = position)
         let fix = makeDefault "Fixed" 2
         let feat = makeDefault "Added" 1
         let breaking = makeDefault "BREAKING CHANGE" 0
@@ -156,69 +137,57 @@ type GitHubRemote = GitHubRemote of LibGit2Sharp.Remote with
     member this.Value = let (GitHubRemote value) = this in value
 
 module GitNetTag =
-    type Sepoch = {
-        Ref: Tag
-        SepochSemver: SepochSemver
-    }
-    type Semver = {
-        Ref: Tag
-        Semver: Semver.SemVersion
-    }
     let create tag =
         let createImpl =
             Tag.name
             >> parseSepochSemver
             >> function
                 | { Sepoch = Sepoch.None } as sepSemver ->
-                    { Ref = tag
-                      Semver = sepSemver.SemVer }
-                    |> SemVerTag
+                    SemVerTag(tag, sepSemver.SemVer)
                 | sepochSemver ->
-                    { Ref = tag
-                      SepochSemver = sepochSemver }
-                    |> GitNetTag
+                    SepochTag(tag, sepochSemver)
         try
             createImpl tag
         with
         _ -> GitTag tag
     module Validation =
         let versioned = function
-            | GitNetTag _ | SemVerTag _ as tag -> Some tag
+            | SepochTag _ | SemVerTag _ as tag -> Some tag
             | _ -> None
         let sepochSemver = function
-            | GitNetTag _ as tag -> Some tag
+            | SepochTag _ as tag -> Some tag
             | _ -> None
     let getScope = function
-        | GitNetTag { SepochSemver = { Sepoch = sepoch } } ->
+        | SepochTag( sepochSemver = { Sepoch = sepoch } ) ->
             sepoch.GetScope
         | _ -> ValueNone
     let chooseSemverCompatible = function
-        | GitNetTag _ | SemVerTag _ as tag -> ValueSome tag
+        | SepochTag _ | SemVerTag _ as tag -> ValueSome tag
         | _ -> ValueNone
     let toSemverString = function
-        | SemVerTag { Semver = semver }
-        | GitNetTag { SepochSemver = { SemVer = semver } } ->
+        | SemVerTag(semver = semver) 
+        | SepochTag ( sepochSemver = { SemVer = semver } ) ->
             semver.ToString()
         | _ -> failwith "Not a valid semver tag"
     let tryToSemverString tag =
         try toSemverString tag |> ValueSome
         with _ -> ValueNone
     let toSepochSemverString = function
-        | SemVerTag { Semver = semver } -> semver.ToString()
-        | GitNetTag { SepochSemver = sepoch } -> sepoch.ToString()
+        | SemVerTag(semver = semver)  -> semver.ToString()
+        | SepochTag ( sepochSemver = sepoch ) -> sepoch.ToString()
         | _ -> failwith "Not a valid semver tag"
     let tryToSepochSemverString tag =
         try toSepochSemverString tag |> ValueSome
         with _ -> ValueNone
     let toString = function
-        | SemVerTag { Semver = semver } -> semver.ToString()
-        | GitNetTag { SepochSemver = sepoch } -> sepoch.ToString()
+        | SemVerTag( semver = semver ) -> semver.ToString()
+        | SepochTag ( sepochSemver = sepoch ) -> sepoch.ToString()
         | GitTag tag -> Tag.name tag
     
     module Git =
         let tag = function
-            | GitNetTag { Ref = tag }
-            | SemVerTag { Ref = tag }
+            | SepochTag(ref = tag)
+            | SemVerTag(ref = tag)
             | GitTag tag -> tag
         let name = tag >> Tag.name
         let fullName = tag >> Tag.fullName

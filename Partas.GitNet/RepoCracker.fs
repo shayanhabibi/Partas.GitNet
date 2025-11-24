@@ -57,7 +57,7 @@ module internal Projects =
         extractElementValue "Title" project
         |> ValueOption.orElse (extractElementValue "PackageId" project)
 module internal Config =
-    let nameResolver (config: ProjectFSharpConfig option) (path: string) (msbuildProj: MSBuildProject): string voption =
+    let nameResolver (config: ProjectConfig) (path: string) (msbuildProj: MSBuildProject): string voption =
         let makeResolver =
             let fileNameResolver =
                 lazy
@@ -80,15 +80,9 @@ module internal Config =
                 titleResolver
             | FSharpNameResolution.Directory ->
                 directoryResolver
-        match config with
-        | Some config ->
-            config.NameResolution
-            |> makeResolver
-            |> _.Value
-        | None ->
-            FSharpNameResolution.Auto
-            |> makeResolver
-            |> _.Value
+        config.NameResolution
+        |> makeResolver
+        |> _.Value
     let findAssemblyFile: string seq -> string option =
         Seq.tryFind(Path.GetFileName >> function
                     | "AssemblyFile.fs"
@@ -139,6 +133,7 @@ module internal Path =
 module internal CrackedProject =
     module GitNetOptions =
         open CrackedProject
+
         let create scope initialVersion autoBump epoch autobranchName version =
             {
                 Scope = scope
@@ -152,27 +147,24 @@ module internal CrackedProject =
             let success,result = SemVersion.TryParse input
             if success then Some result else None
         let inline computeConfigInitialVersionScopeMapper config: string option -> _ =
-            let inline tryParseSemverFromDict (dictionary: IDictionary<_,_>) key =
+            let inline tryRetrieveSemverFromDict (dictionary: IDictionary<_,_>) key =
                 match dictionary.TryGetValue(key) with
-                | true, str -> tryParseSemver str
+                | true, semver -> Some semver
                 | _ -> None
             match config.InitialVersionStrategy with
-            | ProjectInitialVersionStrategy.Simple str ->
-                let initVers = tryParseSemver str
-                fun _ -> initVers
+            | ProjectInitialVersionStrategy.Simple semver ->
+                fun _ -> Some semver
             | ProjectInitialVersionStrategy.Mapping dictionary ->
                 fun scope ->
                     scope
-                    |> Option.bind
-                           (tryParseSemverFromDict dictionary)
+                    |> Option.bind (tryRetrieveSemverFromDict dictionary)
             | ProjectInitialVersionStrategy.MappingOrSimple(mapping, fallback) ->
-                let fallbackVers = tryParseSemver fallback
+                let fallbackVers = Some fallback
                 fun scope ->
                     scope
                     |> Option.bind
-                        (tryParseSemverFromDict mapping)
+                        (tryRetrieveSemverFromDict mapping)
                     |> Option.orElse fallbackVers
-            | ProjectInitialVersionStrategy.None -> fun _ -> None
         let getInitialVersionForProjectWithScope project (configInitialVersionMapper: string option -> SemVersion option) scope =
             project
             |> Projects.tryGetInitialVersion
@@ -196,24 +188,17 @@ module internal CrackedProject =
             |> ValueOption.toOption
             |> Option.defaultValue
                    (configAutoBumpMapper scope)
-    let inline private computeProjectIgnorer config =
-        match config.ProjectType with
-        | ProjectType.FSharp (Some { IgnoredProjects = projects }) ->
-            Some projects
-        | _ -> None
-        |> Option.map(fun projList ->
-            fun input -> List.contains input projList)
-    let inline private computeScopeAutoFactory (config: ProjectFSharpConfig option) proj projectPath =
+    let inline private computeProjectIgnorer { Projects = { IgnoredProjects = projects } } =
+        match projects with
+        | [] -> None
+        | _ -> Some(fun input -> List.contains input projects)
+    let inline private computeScopeAutoFactory (config: ProjectConfig) proj projectPath =
         match config with
-        | None ->
-            Projects.tryGetScope proj
-            |> ValueOption.orElse (nameResolver config projectPath proj)
-            |> ValueOption.toOption
-        | Some { OverrideExplicitScopes = true; AutoScoping = func } ->
+        | { OverrideExplicitScopes = true; AutoScoping = func } ->
             nameResolver config projectPath proj
             |> ValueOption.toOption
             |> Option.bind func
-        | Some { AutoScoping = func } ->
+        | { AutoScoping = func } ->
             nameResolver config projectPath proj
             |> ValueOption.toOption
             |> Option.orElse (
@@ -223,7 +208,7 @@ module internal CrackedProject =
             |> Option.bind func
     /// From the given config, it will precompute a function which determines the scope
     /// from a given project and projectPath
-    let inline computeConfigScopeFactory config =
+    let inline computeConfigScopeFactory (config: GitNetConfig) =
         let projectIgnorer =
             match computeProjectIgnorer config with
             | Some func ->
@@ -237,7 +222,7 @@ module internal CrackedProject =
                 fun proj projectPath handler ->
                     handler proj projectPath
         let autoHandler =
-            computeScopeAutoFactory (config.ProjectType |> function ProjectType.FSharp proj -> proj | _ -> None)
+            computeScopeAutoFactory config.Projects
         match config.Scope with
         | ScopeStrategy.None ->
             fun _ _ ->
@@ -293,12 +278,22 @@ module internal CrackedProject =
         let autoBumpBranchName = Projects.tryGetAutoBumpBranchName proj |> ValueOption.toOption
         let version = proj |> Projects.tryGetVersion |> ValueOption.toOption
         {
+            RepoRoot = repoDir
             ProjectDirectory = makeRelativeFromRepo absoluteProjectDirectory
             ProjectFileName = makeRelativeFromRepo path
             SourceFiles = Seq.toList sourceFiles
             AssemblyFile = assemblyFile
             GitNetOptions = GitNetOptions.create scope initialVersion autoBump epoch autoBumpBranchName version
         }
+
+[<RequireQualifiedAccess>]
+module CrackRepo =
+    type Error =
+        | NoScope
+        | NoAssemblyFileFound
+        | NoSepochSemver
+        | Exn of exn
+        
 
 type GitNetRuntime with
     /// <summary>
@@ -307,36 +302,28 @@ type GitNetRuntime with
     /// the project information.</para>
     /// </summary>
     member this.CrackRepo =
-        match this.config.ProjectType with
-        | ProjectType.FSharp _ ->
-            // Function that determines whether a scope should be bumped
-            let autoBumper =
-                this.config
-                |> CrackedProject
-                    .GitNetOptions
-                    .computeConfigAutoBumpScopeMatcher
-            // Function that determines a scopes initialVersion mapping if possible
-            let initialVersioner =
-                this.config
-                |> CrackedProject
-                   .GitNetOptions
-                   .computeConfigInitialVersionScopeMapper
-            // Function that determines the scope for a project
-            let scoper =
-                this.config
-                |> CrackedProject.computeConfigScopeFactory
-            // Function that creates a cracked project from the project path
-            let makeCrackedProj =
-                CrackedProject.create this.config scoper autoBumper initialVersioner this.rootDir
-            Projects.findProjects this
-            |> Seq.map (makeCrackedProj >> CrackedProject.FSharp)
-        | ProjectType.None projectNoneConfig ->
-            projectNoneConfig.PathScopeMapping
-            |> Seq.map (fun keyValue ->
-                CrackedProject.NonFSharp {
-                    ProjectDirectory = keyValue.Key
-                    Scope = keyValue.Value
-                })
+        // Function that determines whether a scope should be bumped
+        let autoBumper =
+            this.config
+            |> CrackedProject
+                .GitNetOptions
+                .computeConfigAutoBumpScopeMatcher
+        // Function that determines a scopes initialVersion mapping if possible
+        let initialVersioner =
+            this.config
+            |> CrackedProject
+               .GitNetOptions
+               .computeConfigInitialVersionScopeMapper
+        // Function that determines the scope for a project
+        let scoper =
+            this.config
+            |> CrackedProject.computeConfigScopeFactory
+        // Function that creates a cracked project from the project path
+        let makeCrackedProj =
+            CrackedProject.create this.config scoper autoBumper initialVersioner this.rootDir
+        Projects.findProjects this
+        |> Seq.map makeCrackedProj 
+                
     /// <summary>
     /// Given a sequence of <c>SepochSemver</c>'s, will generate <c>AssemblyFile</c>'s using the
     /// scope from the input to match against the project directory.
@@ -346,12 +333,9 @@ type GitNetRuntime with
     member this.WriteAssemblyFiles (versions: SepochSemver seq, ?stageFiles: bool) =
         let stageFiles = defaultArg stageFiles false
         this.CrackRepo
-        |> Seq.choose(function
-            | CrackedProject.FSharp proj -> Some proj
-            | _ -> None)
-        |> Seq.iter(function
-            | { GitNetOptions = { Scope = None } } -> ()
-            | { AssemblyFile = None } when this.config.AssemblyFiles.IsCreate |> not -> ()
+        |> Seq.map(function
+            | { GitNetOptions = { Scope = None } } -> CrackRepo.Error.NoScope |> Error
+            | { AssemblyFile = None } when this.config.AssemblyFiles.IsCreate |> not -> CrackRepo.Error.NoAssemblyFileFound |> Error
             | { ProjectDirectory = path
                 AssemblyFile = assemblyFile
                 GitNetOptions = { Scope = Some scop } } as proj ->
@@ -392,10 +376,13 @@ type GitNetRuntime with
                     if stageFiles then
                         this.repo.Index.Add (Path.GetRelativePath(this.rootDir, assemblyPath))
                     this.StatAssemblyFile assemblyPath
+                    Ok()
                     with e ->
                         e
                         |> printfn "%A"
-                | _ -> ()
+                        CrackRepo.Error.Exn e
+                        |> Error
+                | _ -> CrackRepo.Error.NoSepochSemver |> Error
             )
     /// <summary>
     /// Given a dictionary of <c>Scope</c>'s to <c>SepochSemver</c>'s, will generate <c>AssemblyFile</c>'s using the
@@ -418,4 +405,13 @@ type GitNetRuntime with
         |> fst
         |> _.Values
         |> this.WriteAssemblyFiles
+        #if DEBUG
+        |> Seq.iter(function
+            | Error (CrackRepo.Exn e) -> printfn $"%A{e}"
+            | Error e -> printfn $"%A{e}"
+            | _ -> ()
+            )
+        #else
+        |> ignore
+        #endif
         mapping

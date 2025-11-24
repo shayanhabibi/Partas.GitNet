@@ -1,15 +1,16 @@
-﻿module Partas.GitNet.Spec
+﻿namespace Partas.GitNet
 
-/// <summary>
-/// The string format used in printing.
-/// </summary>
-let [<Literal>] dateFormat = "yyyy-MM-dd"
+module Spec =
+    /// <summary>
+    /// The string format used in printing.
+    /// </summary>
+    let [<Literal>] dateFormat = "yyyy-MM-dd"
 
 /// <summary>
 /// These are literals that can be used as tags in <c>.fsproj</c> <c>PropertyGroup</c> elements.
 /// Their impact and relevance is discussed for each item.
 /// </summary>
-module MSBuild =
+module MSBuildProperties =
     /// <summary>
     /// Explicitly sets the scope value for a FSProject.
     /// </summary>

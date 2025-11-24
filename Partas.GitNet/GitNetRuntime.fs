@@ -47,39 +47,6 @@ type GitNetRuntime(config: GitNetConfig) =
             |> function true -> ValueNone | _ -> ValueSome path
             )
         |> ValueOption.defaultValue config.RepositoryPath
-    let writeCommitMessage =
-        match config.Output.Formatting with
-        | MacroGroupType.EpochAnd(MacroGroupType.ScopePrefix prefixConfig)
-        | MacroGroupType.ScopePrefix prefixConfig ->
-            match prefixConfig with
-            | ScopePrefixConfig.Templated stringOptionFunc ->
-                fun scope message ->
-                    scope |> stringOptionFunc
-                    |> Option.map (sprintf " %s")
-                    |> Option.defaultValue ""
-                    |> fun v -> $"%s{v}%s{message}"
-            | ScopePrefixConfig.SquareBrackets ->
-                fun scope message ->
-                    scope |> Option.map (sprintf "[%s] ")
-                    |> Option.defaultValue ""
-                    |> fun v -> $"{v}{message}"
-            | ScopePrefixConfig.Parenthesis ->
-                fun scope message ->
-                    scope |> Option.map (sprintf "(%s) ")
-                    |> Option.defaultValue ""
-                    |> fun v -> $"{v}{message}"
-            | ScopePrefixConfig.AngleBrackets ->
-                fun scope message ->
-                    scope |> Option.map (sprintf "<%s> ")
-                    |> Option.defaultValue ""
-                    |> fun v -> $"{v}{message}"
-            | ScopePrefixConfig.Label ->
-                // TODO
-                fun _ message -> message
-            | ScopePrefixConfig.None ->
-                fun _ message -> message
-        | _ ->
-            fun _ message -> message
     let disposals = ResizeArray<unit -> unit>()
     let mutable commitHasBeenMade = false
     member val repo = _repo with get
@@ -100,10 +67,12 @@ type GitNetRuntime(config: GitNetConfig) =
     interface System.IDisposable with
         member this.Dispose() =
             Repository.dispose _repo
-            
     member this.Disposals = disposals
-    member internal this.WriteCommitToMarkdown scope commit =
-        writeCommitMessage scope commit
+    member this.StageFiles(files: string list) =
+        let index = this.repo |> Repository.index
+        try
+            for file in files do index |> Index.addFile file
+        with e -> printfn $"Failed to stage files:\n %A{e}"
     /// <summary>
     /// Commits staged files.
     /// </summary>
@@ -113,10 +82,7 @@ type GitNetRuntime(config: GitNetConfig) =
     /// <param name="date">Date</param>
     /// <param name="appendCommit">Whether to append to last commit</param>
     member this.CommitChanges(?username,?email,?message: string, ?date: DateTimeOffset, ?appendCommit: bool) =
-        let appendCommit =
-            if commitHasBeenMade then
-                defaultArg appendCommit true
-            else false
+        let appendCommit = appendCommit |> Option.defaultValue commitHasBeenMade
         let username = defaultArg username "GitHub Action"
         let email = defaultArg email "41898282+github-actions[bot]@users.noreply.github.com"
         let date = defaultArg date DateTimeOffset.Now
@@ -142,20 +108,20 @@ type GitNetRuntime(config: GitNetConfig) =
         tags
         |> Seq.iter (fun sepochSemver ->
             try
-            let sepochSemver = sepochSemver.ToString()
+            let semverString = sepochSemver.ToString()
             Repository.applyTag
-                sepochSemver
+                semverString
                 this.repo
             |> ignore
-            cacheTag sepochSemver
+            cacheTag semverString
             with
             | :? NameConflictException as e ->
                 printfn $"Duplicate tag %A{sepochSemver}:\n%A{e}"
             )
     member internal this.CategoriseCommits(commits: GitNetCommit seq) =
-        let config = this.config.Output
+        let matcher = this.config.Output.ComputeGroupMatcher
         commits
-        |> Seq.map (GitNetCommit.parsed >> config.ComputeGroupMatcher)
+        |> Seq.map (GitNetCommit.parsed >> matcher)
         |> Seq.zip commits
     member internal this.StatAssemblyFile = cacheAssemblyFile
     member internal this.StatVersionFile = cacheVersionFile
@@ -172,7 +138,7 @@ type GitNetRuntime(config: GitNetConfig) =
     /// </summary>
     member this.GetRuns() = getCacheRuns()
     
-module Runtime =
+module internal Runtime =
     let computeEpochFooterMatcher (runtime: GitNetRuntime): Footer -> bool =
         let runtimeEpochMatches: string -> bool = fun value ->
             runtime.config.Bump.Mapping.Epoch

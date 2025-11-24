@@ -76,7 +76,7 @@ let gitnetConfig = {
             IgnoreCommit.SkipCi
         ]
         Bump.DefaultBumpStrategy = ForceBumpStrategy.All
-        ProjectType =
+        Projects =
             let ignoreProject: string -> string = Path.GetFileNameWithoutExtension
             {
                 ProjectFSharpConfig.init with
