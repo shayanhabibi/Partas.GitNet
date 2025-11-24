@@ -31,7 +31,9 @@ type GitNetRuntime with
         try
         this.repo
         |> Repository.index
-        |> Index.addFile (System.IO.Path.GetRelativePath(this.rootDir, path))
+        |> fun idx ->
+            Index.addFile (System.IO.Path.GetRelativePath(this.rootDir, path)) idx
+            Index.write idx
         with e ->
             e
             |> printfn "%A"

@@ -375,6 +375,7 @@ type GitNetRuntime with
                     |> AssemblyInfoFile.createFSharp assemblyPath
                     if stageFiles then
                         this.repo.Index.Add (Path.GetRelativePath(this.rootDir, assemblyPath))
+                        this.repo.Index.Write()
                     this.StatAssemblyFile assemblyPath
                     Ok()
                     with e ->

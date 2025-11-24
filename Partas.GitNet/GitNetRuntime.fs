@@ -72,6 +72,7 @@ type GitNetRuntime(config: GitNetConfig) =
         let index = this.repo |> Repository.index
         try
             for file in files do index |> Index.addFile file
+            index |> Index.write
         with e -> printfn $"Failed to stage files:\n %A{e}"
     /// <summary>
     /// Commits staged files.
@@ -81,14 +82,17 @@ type GitNetRuntime(config: GitNetConfig) =
     /// <param name="message">Message for commit</param>
     /// <param name="date">Date</param>
     /// <param name="appendCommit">Whether to append to last commit</param>
-    member this.CommitChanges(?username,?email,?message: string, ?date: DateTimeOffset, ?appendCommit: bool) =
+    /// <param name="writeIndex">Whether to write the index before committing. Default <c>true</c></param>
+    member this.CommitChanges(?username,?email,?message: string, ?date: DateTimeOffset, ?appendCommit: bool, ?writeIndex) =
         let appendCommit = appendCommit |> Option.defaultValue commitHasBeenMade
         let username = defaultArg username "GitHub Action"
         let email = defaultArg email "41898282+github-actions[bot]@users.noreply.github.com"
         let date = defaultArg date DateTimeOffset.Now
         let message = defaultArg message "[skip ci]\n\nGitNet auto file update."
+        let writeIndex = defaultArg writeIndex true
         let signature = Signature(name = username, email = email, ``when`` = date)
         try
+        if writeIndex then this.repo.Index.Write()
         this
             .repo
             .Commit(message, signature, signature, CommitOptions(AllowEmptyCommit = false, AmendPreviousCommit = appendCommit))

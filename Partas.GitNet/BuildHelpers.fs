@@ -70,6 +70,7 @@ module CrackedProject =
         let index = runtime.repo |> Repository.index
         for file in files do
             index |> Index.addFile file
+        index |> Index.write
         Ok ()
         with e ->
             Error e
