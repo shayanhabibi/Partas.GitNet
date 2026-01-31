@@ -72,6 +72,12 @@ module CrackedProject =
     let sourceFiles = _.SourceFiles
     let assemblyFile = _.AssemblyFile >> ValueOption.ofOption
     let gitNetOptions = _.GitNetOptions
+    module AbsolutePath =
+        open System.IO
+        let projectDirectory { RepoRoot = repoRoot; ProjectDirectory = projectDirectory } =
+            Path.Combine(repoRoot, projectDirectory)
+        let projectFile  { RepoRoot = repoRoot; ProjectFileName = projectFileName } =
+            Path.Combine(repoRoot, projectFileName)
 
 /// A record of the parsed commit, and the git object it was
 /// derived from.
