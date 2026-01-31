@@ -128,13 +128,13 @@ module CommitGroup =
     module Defaults =
         let private makeDefault title position =
             CommitGroup.Create(title, position = position)
-        let fix = makeDefault "Fixed" 2
-        let feat = makeDefault "Added" 1
         let breaking = makeDefault "BREAKING CHANGE" 0
+        let feat = makeDefault "Added" 1
+        let fix = makeDefault "Fixed" 2
+        let changed = makeDefault "Changed" 2
         let removed = makeDefault "Removed" 3
         let deprecated = makeDefault "Deprecated" 4
         let revert = makeDefault "Revert" 5
-        let changed = makeDefault "Changed" 2
         let other = makeDefault "Others" 6
         
 /// Single case DU for GitHub LibGit2Sharp remotes.
