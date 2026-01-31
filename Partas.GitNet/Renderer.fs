@@ -229,6 +229,7 @@ module Render =
         CommitSha: string
         CommitAuthor: string
         Scope: string voption
+        DateTime: System.DateTimeOffset
     }
     /// <summary>
     /// A rendered tag, of a scope.
@@ -280,6 +281,10 @@ module Render =
                     |> Commit.author
                     |> Signature.name
                 Scope = ValueNone
+                DateTime =
+                    gitCommit
+                    |> Commit.author
+                    |> Signature.date
             }
         let fromGitNetCommitWithScope scope = fromGitNetCommit >> fun comm ->
             { comm with Scope = scope }
