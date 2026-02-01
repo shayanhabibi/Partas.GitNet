@@ -707,7 +707,7 @@ type ProjectConfigBuilder() =
     [<CustomOperation "ignoreProject">]
     member inline _.IgnoreProjectOp(state: ProjectConfig, value: string) = { state with IgnoredProjects = value :: state.IgnoredProjects }
     [<CustomOperation "ignoreProject">]
-    member _.IgnoreProjectOp(_: unit, value: string) = { init with IgnoredProjects = value :: state.IgnoredProjects }
+    member _.IgnoreProjectOp(_: unit, value: string) = { init with IgnoredProjects = value :: init.IgnoredProjects }
     [<CustomOperation "ignoreProjects">]
     member _.IgnoreProjectsOp(state: ProjectConfig, projects: string list) = { state with IgnoredProjects = projects }
     [<CustomOperation "ignoreProjects">]
