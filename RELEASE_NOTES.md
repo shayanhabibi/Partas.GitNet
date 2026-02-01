@@ -13,7 +13,7 @@ which includes [Scopes and Epochs](#epoch-scoped-semver).
 
 **Scope** | Current Release | Commit Count
 :--- | :---: | :---:
-[**GitNet**](#gitnet) | [2.0.5](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_2.0.4..._%28GitNet%29_2.0.5) | 16 commits
+[**GitNet**](#gitnet) | [3.0.0](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_2.0.5..._%28GitNet%29_3.0.0) | 17 commits
 [**SepochSemver**](#sepochsemver) | [0.5.0](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28SepochSemver%29_0.4.2..._%28SepochSemver%29_0.5.0) | 3 commits
 [**Markdown**](#markdown) | [0.1.0](https://github.com/shayanhabibi/Partas.GitNet/commit/c822ad300480de197d5415ccecf25a216a4434fa) | None yet!
 
@@ -22,7 +22,14 @@ which includes [Scopes and Epochs](#epoch-scoped-semver).
 
 # GitNet
 
-### [UNRELEASED](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_2.0.5...HEAD)
+### [UNRELEASED](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_3.0.0...HEAD)
+
+### [3.0.0](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_2.0.5..._%28GitNet%29_3.0.0) - (2026-02-01)
+
+#### <!-- 1 --> Added
+
+* dummy commit to force breaking change by [@shayanhabibi](https://github.com/shayanhabibi) with [#5dff8](https://github.com/shayanhabibi/Partas.GitNet/commit/5dff8edfb0c9cef3b990a3cfec4e6afbe8960f91)
+  
 
 ### [2.0.5](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_2.0.4..._%28GitNet%29_2.0.5) - (2026-02-01)
 
