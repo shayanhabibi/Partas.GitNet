@@ -69,25 +69,48 @@ let projects = [|
     Files.``Partas.GitNet.Markdown``.``Partas.GitNet.Markdown.fsproj``
 |]
 
-let gitnetConfig = {
-    GitNetConfig.initFSharp with
-        RepositoryPath = Files.``.``
-        Output.Ignore = Defaults.ignoreCommits @ [
-            IgnoreCommit.SkipCi
-        ]
-        Bump.DefaultBumpStrategy = ForceBumpStrategy.All
-        Projects =
-            let ignoreProject: string -> string = Path.GetFileNameWithoutExtension
-            {
-                ProjectConfig.init with
-                    IgnoredProjects = List.map ignoreProject [
-                        Files.``Build.fsproj``
-                        Files.``Partas.GitNet.Cli``.``Partas.GitNet.Cli.fsproj``
-                        Files.Tests.``Partas.GitNet.Tests``.``Partas.GitNet.Tests.fsproj``
-                        Files.Tests.``Partas.Tools.SepochSemver.Tests``.``Partas.Tools.SepochSemver.Tests.fsproj``
-                    ]
+open Partas.GitNet.CE
+let gitnetConfig =
+    let ignoreProjectFn: string -> string = Path.GetFileNameWithoutExtension
+    Config.gitnetConfig {
+        repositoryPath Files.``.``
+        Config.outputConfig {
+            Config.ignoreCommits {
+                skipci
             }
-}
+        }
+        Config.bumpConfig {
+            defaults
+            ForceBumpStrategy.All
+        }
+        Config.projectConfig {
+            ignoreProjects (List.map ignoreProjectFn [
+                Files.``Build.fsproj``
+                Files.``Partas.GitNet.Cli``.``Partas.GitNet.Cli.fsproj``
+                Files.Tests.``Partas.GitNet.Tests``.``Partas.GitNet.Tests.fsproj``
+                Files.Tests.``Partas.Tools.SepochSemver.Tests``.``Partas.Tools.SepochSemver.Tests.fsproj``
+            ])
+        }
+    }
+// let gitnetConfig = {
+//     GitNetConfig.initFSharp with
+//         RepositoryPath = Files.``.``
+//         Output.Ignore = Defaults.ignoreCommits @ [
+//             IgnoreCommit.SkipCi
+//         ]
+//         Bump.DefaultBumpStrategy = ForceBumpStrategy.All
+//         Projects =
+//             let ignoreProject: string -> string = Path.GetFileNameWithoutExtension
+//             {
+//                 ProjectConfig.init with
+//                     IgnoredProjects = List.map ignoreProject [
+//                         Files.``Build.fsproj``
+//                         Files.``Partas.GitNet.Cli``.``Partas.GitNet.Cli.fsproj``
+//                         Files.Tests.``Partas.GitNet.Tests``.``Partas.GitNet.Tests.fsproj``
+//                         Files.Tests.``Partas.Tools.SepochSemver.Tests``.``Partas.Tools.SepochSemver.Tests.fsproj``
+//                     ]
+//             }
+// }
 let runtime = lazy new GitNetRuntime(gitnetConfig)
 let crackedProjects =
     lazy
@@ -175,7 +198,7 @@ let dependencyMapping = [
     ==> Ops.Build
     ==> Ops.Pack
     ==> Ops.GitPush
-    ==> Ops.Publish
+    // ==> Ops.Publish
 ]
 
 [<EntryPoint>]

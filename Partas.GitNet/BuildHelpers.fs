@@ -196,6 +196,14 @@ let private getProjectsForMapping (mapping: IDictionary<string, SepochSemver>) (
                 proj,semver)
 
 type GitNetRuntime with
+    /// <summary>
+    /// Applies a version to the given project's <c>.fsproj</c> file. Is not related to tags.
+    /// Will stage the file if <paramref name="stageFile"/> is true.
+    /// </summary>
+    /// <param name="project">The project to act on.</param>
+    /// <param name="version">The version to apply.</param>
+    /// <param name="stageFile">Whether to stage the file after writing. Default is <c>false</c>.</param>
+    /// <param name="cacheDisposal">Whether to cache a reverse function to run on calling the disposal cache functions. Default is <c>true</c></param>
     member this.VersionProject(project: CrackedProject, version: Semver.SemVersion, ?stageFile: bool, ?cacheDisposal: bool) =
         let projectPath = Path.combine this.rootDir project.ProjectFileName
         let stageFile = defaultArg stageFile false
@@ -211,10 +219,12 @@ type GitNetRuntime with
             | Error e -> e |> printfn "Filed to stage %s:\n%A" projectPath
         else this.StatVersionFile projectPath
     /// <summary>
-    /// Uses the bump dictionary
-    /// to write the versions to the
-    /// files to prepare them for packing.
+    /// Applies the given dictionary of scopes and versions to the relevant project <c>.fsproj</c> files.
+    /// Will stage the files if <paramref name="stageFile"/> is true.
     /// </summary>
+    /// <param name="mapping">The map of project scopes to versions.</param>
+    /// <param name="stageFile">Whether to stage the files after writing. Default is <c>false</c></param>
+    /// <param name="cacheDisposal">Whether to save the <c>undo</c> action into the <c>Disposal</c> cache. Default is <c>true</c></param>
     member this.VersionProjects(mapping: IDictionary<string, SepochSemver>, ?stageFile: bool, ?cacheDisposal: bool) =
         this
         |> getProjectsForMapping mapping
@@ -222,6 +232,9 @@ type GitNetRuntime with
             fun (proj, semver) ->
                 this.VersionProject(proj, semver.SemVer, ?cacheDisposal = cacheDisposal, ?stageFile = stageFile)
             )
+    /// <summary>
+    /// Reverts all the <c>.fsproj</c> file changes saved to the disposal cache.
+    /// </summary>
     member this.RevertVersionProjects() =
             let runDisposal func =
                 try func() with e ->

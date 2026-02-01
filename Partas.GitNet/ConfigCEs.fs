@@ -641,16 +641,40 @@ type BumpConfigBuilder() =
     member inline _.For(state: CommitBumpTypeMapping, [<InlineIfLambda>] value: unit -> ForceBumpStrategy) = { Mapping = state; DefaultBumpStrategy = value() }
     [<EditorBrowsable(EditorBrowsableState.Never)>]
     member inline _.For(state: BumpConfig, [<InlineIfLambda>] value: unit -> ForceBumpStrategy) = { state with DefaultBumpStrategy = value() }
+    [<EditorBrowsable(EditorBrowsableState.Never)>]
+    member inline _.For(_: unit, [<InlineIfLambda>] value: unit -> CommitBumpTypeMapping) = value()
+    [<EditorBrowsable(EditorBrowsableState.Never)>]
+    member inline _.For(state: ForceBumpStrategy, [<InlineIfLambda>] value: unit -> CommitBumpTypeMapping) = { Mapping = value(); DefaultBumpStrategy = state }
+    [<EditorBrowsable(EditorBrowsableState.Never)>]
+    member inline _.For(state: BumpConfig, [<InlineIfLambda>] value: unit -> CommitBumpTypeMapping) = { state with Mapping = value() }
     [<CustomOperation "defaults">]
     member _.AddDefaultsOp(_: unit) = BumpConfig.init
-    [<CustomOperation "defaults">]
-    member _.AddDefaultsOp(state: CommitBumpTypeMapping) = { BumpConfig.init with Mapping = state }
-    [<CustomOperation "defaults">]
+    [<CustomOperation "addDefaults">]
+    member _.AddDefaultsOp(state: CommitBumpTypeMapping) =
+        { BumpConfig.init with
+              Mapping = {
+                state with
+                    Epoch = state.Epoch @ BumpConfig.init.Mapping.Epoch
+                    Major = state.Major @ BumpConfig.init.Mapping.Major
+                    Minor = state.Minor @ BumpConfig.init.Mapping.Minor
+                    Patch = state.Patch @ BumpConfig.init.Mapping.Patch
+            } }
+    [<CustomOperation "addDefaults">]
+    member _.AddDefaultsOp(state: BumpConfig) =
+        { state with
+              Mapping = {
+                state.Mapping with
+                    Epoch = state.Mapping.Epoch @ BumpConfig.init.Mapping.Epoch
+                    Major = state.Mapping.Major @ BumpConfig.init.Mapping.Major
+                    Minor = state.Mapping.Minor @ BumpConfig.init.Mapping.Minor
+                    Patch = state.Mapping.Patch @ BumpConfig.init.Mapping.Patch
+            } }
+    [<CustomOperation "addDefaults">]
     member _.AddDefaultsOp(state: ForceBumpStrategy) = { BumpConfig.init with DefaultBumpStrategy = state }
     [<CustomOperation "defaultBumpStrategy">]
-    member _.DefaultBumpStrategyOp(_: unit, value: ForceBumpStrategy) = value
+    member _.DefaultBumpStrategyOp(_: unit, ?value: ForceBumpStrategy) = Option.defaultValue BumpConfig.init.DefaultBumpStrategy value
     [<CustomOperation "defaultBumpStrategy">]
-    member _.DefaultBumpStrategyOp(state: CommitBumpTypeMapping, value: ForceBumpStrategy) = { Mapping = state; DefaultBumpStrategy = value }
+    member _.DefaultBumpStrategyOp(state: CommitBumpTypeMapping, ?value: ForceBumpStrategy) = { Mapping = state; DefaultBumpStrategy = Option.defaultValue BumpConfig.init.DefaultBumpStrategy value }
     [<CustomOperation "defaultBumpStrategy">]
     member _.DefaultBumpStrategyOp(state: BumpConfig, value: ForceBumpStrategy) = { state with DefaultBumpStrategy = value }
 
@@ -680,6 +704,10 @@ type ProjectConfigBuilder() =
     member inline _.AutoScopeOp(state: ProjectConfig, [<InlineIfLambda>] fn: string -> string option) = { state with AutoScoping = fn }
     [<CustomOperation "autoScopeFn">]
     member _.AutoScopeOp(_: unit, fn: string -> string option) = { init with AutoScoping = fn }
+    [<CustomOperation "ignoreProject">]
+    member inline _.IgnoreProjectOp(state: ProjectConfig, value: string) = { state with IgnoredProjects = value :: state.IgnoredProjects }
+    [<CustomOperation "ignoreProject">]
+    member _.IgnoreProjectOp(_: unit, value: string) = { init with IgnoredProjects = value :: state.IgnoredProjects }
     [<CustomOperation "ignoreProjects">]
     member _.IgnoreProjectsOp(state: ProjectConfig, projects: string list) = { state with IgnoredProjects = projects }
     [<CustomOperation "ignoreProjects">]
