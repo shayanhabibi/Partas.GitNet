@@ -13,8 +13,8 @@
         <PackageTags>Partas;Semver;Git;AutoVersioning;CI;F#;FSharp;Automation;DevOps</PackageTags>
         <Authors>Shayan Habibi</Authors>
         <Copyright>Copyright © Shayan Habibi 2025</Copyright>
-        <Version>2.0.5</Version>
-        <PackageVersion>2.0.5</PackageVersion>
+        <Version>3.0.0</Version>
+        <PackageVersion>3.0.0</PackageVersion>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageIcon>Partas_d00b_00a icon.png</PackageIcon>
