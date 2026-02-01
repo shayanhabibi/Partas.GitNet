@@ -32,6 +32,7 @@
         <Compile Include="Spec.fs" />
         <Compile Include="Types.fs" />
         <Compile Include="Config.fs" />
+        <Compile Include="ConfigCEs.fs" />
         <Compile Include="GitHub.fs" />
         <Compile Include="GitNetRuntime.fs" />
         <Compile Include="RepoCracker.fs" />

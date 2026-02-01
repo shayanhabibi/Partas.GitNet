@@ -203,6 +203,7 @@ module Tag =
             let unorderedList content = MarkdownParagraph.ListBlock(MarkdownListKind.Unordered, content, None)
             let commits =
                 group.Value
+                |> List.sortBy _.DateTime
                 |> List.map (Commit.writeCommit runtime >> List.singleton)
                 |> unorderedList
 

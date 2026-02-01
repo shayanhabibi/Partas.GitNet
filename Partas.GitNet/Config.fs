@@ -13,20 +13,65 @@ type FSharpNameResolution =
     /// <summary>
     /// The file name is used to derive the scope name
     /// </summary>
+    /// <example>
+    /// <code>
+    /// root
+    /// └── Project
+    ///     └── Project1.fsproj
+    /// </code>
+    /// Scope name: Project1
+    /// </example>
+    /// <remarks>
+    /// The string mapping to the scope name still utilises the configured method. The default will split
+    /// by <c>.</c> and take the last part.
+    /// </remarks>
     | FileName
     /// <summary>
     /// The title is used to derive the scope name.
     /// Projects without a title will be ignored.
     /// </summary>
+    /// <example>
+    /// <code>
+    /// root
+    /// └── Project
+    ///     └── ProjectXX.fsproj
+    /// </code>
+    /// <code>
+    /// // ProjectXX.fsproj
+    /// <Title>Project1</Title>
+    /// </code>
+    /// Scope name: Project1
+    /// </example>
+    /// <remarks>
+    /// The string mapping to the scope name still utilises the configured method. The default will split
+    /// by <c>.</c> and take the last part.
+    /// </remarks>
     | Title
     /// <summary>
     /// The directory of a project is used to derive the scope name.
     /// </summary>
+    /// <example>
+    /// <code>
+    /// root
+    /// └── Project
+    ///     └── ProjectXX.fsproj
+    /// </code>
+    /// Scope name: Project
+    /// </example>
+    /// <remarks>
+    /// The string mapping to the scope name still utilises the configured method. The default will split
+    /// by <c>.</c> and take the last part.
+    /// </remarks>
     | Directory
     /// <summary>
-    /// Title > FileName
+    /// Title > FileName<br/><br/>
+    /// The scope is derived from the title of the project if present; otherwise, the file name is used.
     /// </summary>
     | Auto
+
+/// <summary>
+/// How to initially version projects.
+/// </summary>
 [<RequireQualifiedAccess>]
 type ProjectInitialVersionStrategy =
     /// <summary>
@@ -49,7 +94,8 @@ type ProjectConfig = {
     IgnoredProjects: string list
     /// <summary>
     /// Applies a function to a resolved name (see <c>NameResolution</c>
-    /// for where the name comes from) to produce the scope, or ignore it.
+    /// for where the name comes from) to produce the scope, or ignore it.<br/><br/>
+    /// The function can ignore projects even if the project is not included in the <c>IgnoredProjects</c> list.
     /// </summary>
     AutoScoping: string -> string option
     /// <summary>

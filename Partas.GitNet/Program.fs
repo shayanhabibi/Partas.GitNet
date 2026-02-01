@@ -19,6 +19,10 @@ type RuntimeOutput = {
 }
 
 type GitNetRuntime with
+    /// <summary>
+    /// Writes the given string to the output path in the <c>GitNetConfig</c>.
+    /// </summary>
+    /// <param name="content">The content to write to the output path</param>
     member this.WriteToOutput(content: string) =
         this.config
         |> function
@@ -26,20 +30,42 @@ type GitNetRuntime with
                 let path = path ""
                 Fake.IO.File.writeString false path content
                 path
+    /// <summary>
+    /// Writes the given string to the output path in the <c>GitNetConfig</c> and stages the file for committing.
+    /// </summary>
+    /// <remarks>
+    /// Pre GitNet 2.0.4, this would never fail. It will not fail if it fails to stage the file
+    /// for committing. Use <c>TryWriteToOutputAndStage</c> if you want to handle this case with a Result DU.
+    /// </remarks>
+    /// <param name="content">The content to write to the output path.</param>
     member this.WriteToOutputAndStage(content: string) =
         let path = this.WriteToOutput content
-        try
         this.repo
         |> Repository.index
         |> fun idx ->
             Index.addFile (System.IO.Path.GetRelativePath(this.rootDir, path)) idx
             Index.write idx
-        with e ->
-            e
-            |> printfn "%A"
+    /// <summary>
+    /// Writes the given string to the output path in the <c>GitNetConfig</c> and stages the file for committing.
+    /// Returns a Result DU indicating whether the write succeeded or not.
+    /// </summary>
+    /// <param name="content">The content to write to the output path.</param>
+    member this.TryWriteToOutputAndStage(content: string) =
+        try
+            this.WriteToOutputAndStage content
+            |> Ok
+        with e -> Error e
+    /// <summary>
+    /// Writes the given string to the output path in the <c>GitNetConfig</c> and commits the changes.
+    /// Will fail if the output path is not staged for committing.
+    /// </summary>
+    /// <param name="content">The content to write to the output path.</param>
     member this.WriteToOutputAndCommit(content: string) =
         this.WriteToOutputAndStage content
         this.CommitChanges()
+    member this.TryWriteToOutputAndCommit(content: string) =
+        this.TryWriteToOutputAndStage content
+        |> Result.bind (fun _ -> this.TryCommitChanges())
         
     member private this.DryRunImpl() =
         let tagCommitCollection = TagCommitCollection.load this

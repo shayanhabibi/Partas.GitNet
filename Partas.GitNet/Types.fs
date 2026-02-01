@@ -72,6 +72,12 @@ module CrackedProject =
     let sourceFiles = _.SourceFiles
     let assemblyFile = _.AssemblyFile >> ValueOption.ofOption
     let gitNetOptions = _.GitNetOptions
+    module AbsolutePath =
+        open System.IO
+        let projectDirectory { RepoRoot = repoRoot; ProjectDirectory = projectDirectory } =
+            Path.Combine(repoRoot, projectDirectory)
+        let projectFile  { RepoRoot = repoRoot; ProjectFileName = projectFileName } =
+            Path.Combine(repoRoot, projectFileName)
 
 /// A record of the parsed commit, and the git object it was
 /// derived from.
@@ -122,13 +128,13 @@ module CommitGroup =
     module Defaults =
         let private makeDefault title position =
             CommitGroup.Create(title, position = position)
-        let fix = makeDefault "Fixed" 2
-        let feat = makeDefault "Added" 1
         let breaking = makeDefault "BREAKING CHANGE" 0
+        let feat = makeDefault "Added" 1
+        let fix = makeDefault "Fixed" 2
+        let changed = makeDefault "Changed" 2
         let removed = makeDefault "Removed" 3
         let deprecated = makeDefault "Deprecated" 4
         let revert = makeDefault "Revert" 5
-        let changed = makeDefault "Changed" 2
         let other = makeDefault "Others" 6
         
 /// Single case DU for GitHub LibGit2Sharp remotes.

@@ -68,15 +68,64 @@ type GitNetRuntime(config: GitNetConfig) =
         member this.Dispose() =
             Repository.dispose _repo
     member this.Disposals = disposals
+    member inline private this.StageFilesImpl(files: string list) =
+        let index = this.repo |> Repository.index
+        files
+        |> List.map (fun file ->
+            try
+                index |> Index.addFile file
+                Ok file
+            with e ->
+                Error (file, e)
+            )
+    /// <summary>
+    /// Stages the given files for committing.
+    /// </summary>
+    /// <remarks>
+    /// Pre GitNet 2.0.4, this would never raise an exception, and would instead log this to console and continue.
+    /// This behaviour has been changed to raise an exception. Use <c>TryStageFiles</c> if you want to catch the exception
+    /// </remarks>
+    /// <param name="files"></param>
     member this.StageFiles(files: string list) =
         let index = this.repo |> Repository.index
-        try
-            for file in files do index |> Index.addFile file
-            index |> Index.write
-        with e -> printfn $"Failed to stage files:\n %A{e}"
+        this.StageFilesImpl files
+        |> function
+            | results when results |> List.forall _.IsOk |> not ->
+                results
+                |> List.iter(function Ok _ -> () | Error (file, e) -> printfn $"Failed to stage file %s{file}:\n %A{e}")
+                failwith $"Failed to stage files %A{files}"
+            | _ ->
+                index |> Index.write
+    /// <summary>
+    /// Stages the given files for committing.
+    /// Returns an error if either one of the files fails to stage or the index cannot be written.
+    /// </summary>
+    /// <param name="files"></param>
+    member this.TryStageFiles(files: string list) =
+        let index = this.repo |> Repository.index
+        this.StageFilesImpl files
+        |> function
+            | results when results |> List.forall _.IsOk |> not ->
+                results
+                |> List.choose (function Ok _ -> None | Error (file, e) -> Some (file, e))
+                |> Choice1Of2 
+                |> Error
+            | _ ->
+                try
+                    index |> Index.write
+                    Ok files
+                with e ->
+                    Choice2Of2 e
+                    |> Error
+                    
     /// <summary>
     /// Commits staged files.
     /// </summary>
+    /// <remarks>
+    /// Pre GitNet 2.0.4, this would never raise an exception, and would instead log this to console and continue.
+    /// This behaviour has been changed to raise an exception. Use <c>TryCommitChanges</c> if you want to catch the exception
+    /// with a Result DU.
+    /// </remarks>
     /// <param name="username">Git username</param>
     /// <param name="email">Git email</param>
     /// <param name="message">Message for commit</param>
@@ -91,16 +140,49 @@ type GitNetRuntime(config: GitNetConfig) =
         let message = defaultArg message "[skip ci]\n\nGitNet auto file update."
         let writeIndex = defaultArg writeIndex true
         let signature = Signature(name = username, email = email, ``when`` = date)
-        try
         if writeIndex then this.repo.Index.Write()
         this
             .repo
             .Commit(message, signature, signature, CommitOptions(AllowEmptyCommit = false, AmendPreviousCommit = appendCommit))
         |> ignore
         commitHasBeenMade <- true
-        with e ->
-            e
-            |> printfn "Error while committing changes: %A"
+    /// <summary>
+    /// Commits staged files.
+    /// Returns an error if the commit fails.
+    /// </summary>
+    /// <param name="username">Git username</param>
+    /// <param name="email">Git email</param>
+    /// <param name="message">Message for commit</param>
+    /// <param name="date">Date</param>
+    /// <param name="appendCommit">Whether to append to last commit</param>
+    /// <param name="writeIndex">Whether to write the index before committing. Default <c>true</c></param>
+    member this.TryCommitChanges(?username, ?email, ?message: string, ?date: DateTimeOffset, ?appendCommit: bool, ?writeIndex) =
+        try
+            this.CommitChanges(
+                ?username = username,
+                ?email = email,
+                ?message = message,
+                ?date = date,
+                ?appendCommit = appendCommit,
+                ?writeIndex = writeIndex
+                )
+            |> Ok
+        with e -> Error e
+    member inline private this.CommitTagsImpl(tags: SepochSemver seq) =
+        tags
+        |> Seq.map (fun sepochSemver ->
+            try
+            let semverString = sepochSemver.ToString()
+            Repository.applyTag
+                semverString
+                this.repo
+            |> ignore
+            cacheTag semverString
+            Ok sepochSemver
+            with
+            | e -> Error (sepochSemver, e)
+            )
+        |> Seq.toList
     /// <summary>
     /// Tags the current head of the repository with the given semvers.
     /// </summary>
@@ -109,19 +191,25 @@ type GitNetRuntime(config: GitNetConfig) =
     /// </remarks>
     /// <param name="tags"></param>
     member this.CommitTags(tags: SepochSemver seq) =
-        tags
-        |> Seq.iter (fun sepochSemver ->
-            try
-            let semverString = sepochSemver.ToString()
-            Repository.applyTag
-                semverString
-                this.repo
-            |> ignore
-            cacheTag semverString
-            with
-            | :? NameConflictException as e ->
-                printfn $"Duplicate tag %A{sepochSemver}:\n%A{e}"
+        this.CommitTagsImpl tags
+        |> List.iter(function
+            | Error e ->
+                let tag = fst e
+                match snd e with
+                | :? NameConflictException as e ->
+                    printfn $"Duplicate tag %A{tag}:\n%A{e}"
+                | e -> raise e
+            | Ok _ -> ()
             )
+    /// <summary>
+    /// Tags the current head of the repository with the given semvers.
+    /// </summary>
+    /// <remarks>
+    /// Tags must still be pushed to the repository to have effect.
+    /// </remarks>
+    /// <param name="tags"></param>
+    member this.TryCommitTags(tags: SepochSemver seq) = this.CommitTagsImpl tags
+        
     member internal this.CategoriseCommits(commits: GitNetCommit seq) =
         let matcher = this.config.Output.ComputeGroupMatcher
         commits
