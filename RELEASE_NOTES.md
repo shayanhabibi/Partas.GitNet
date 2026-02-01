@@ -13,7 +13,7 @@ which includes [Scopes and Epochs](#epoch-scoped-semver).
 
 **Scope** | Current Release | Commit Count
 :--- | :---: | :---:
-[**GitNet**](#gitnet) | [2.0.4](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_2.0.3..._%28GitNet%29_2.0.4) | 14 commits
+[**GitNet**](#gitnet) | [2.0.5](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_2.0.4..._%28GitNet%29_2.0.5) | 16 commits
 [**SepochSemver**](#sepochsemver) | [0.5.0](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28SepochSemver%29_0.4.2..._%28SepochSemver%29_0.5.0) | 3 commits
 [**Markdown**](#markdown) | [0.1.0](https://github.com/shayanhabibi/Partas.GitNet/commit/c822ad300480de197d5415ccecf25a216a4434fa) | None yet!
 
@@ -22,7 +22,19 @@ which includes [Scopes and Epochs](#epoch-scoped-semver).
 
 # GitNet
 
-### [UNRELEASED](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_2.0.4...HEAD)
+### [UNRELEASED](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_2.0.5...HEAD)
+
+### [2.0.5](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_2.0.4..._%28GitNet%29_2.0.5) - (2026-02-01)
+
+#### <!-- 1 --> Added
+
+* Config CEs; previous operations would silently ignore errors now raise them. Use try-prefixed operations instead. (#8) by [@cabboose](https://github.com/cabboose) with [#cdf91](https://github.com/shayanhabibi/Partas.GitNet/commit/cdf91443239b4dddd81271b6d0407290ddf96d3d)
+  
+
+#### <!-- 2 --> Fixed
+
+* fix typo in CEs by [@shayanhabibi](https://github.com/shayanhabibi) with [#9fc54](https://github.com/shayanhabibi/Partas.GitNet/commit/9fc54e33c086b87d8766aee2ed7f7dadef5125ff)
+  
 
 ### [2.0.4](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_2.0.3..._%28GitNet%29_2.0.4) - (2025-11-24)
 
@@ -68,10 +80,10 @@ which includes [Scopes and Epochs](#epoch-scoped-semver).
 
 #### <!-- 6 --> Others
 
-* Revert "refactor!: Slim API and add proj helpers  " (#6) by [@cabboose](https://github.com/cabboose) with [#d8cac](https://github.com/shayanhabibi/Partas.GitNet/commit/d8cacf7fb4b50c2748662b75a4c7f6a851be66ff)
+* slim the API down to only work for FSharp projects/solutions by [@cabboose](https://github.com/cabboose) with [#4e003](https://github.com/shayanhabibi/Partas.GitNet/commit/4e003b6e72dc1a4b1b62bd555a398f5c4b5143b2)
   
 
-* slim the API down to only work for FSharp projects/solutions by [@cabboose](https://github.com/cabboose) with [#4e003](https://github.com/shayanhabibi/Partas.GitNet/commit/4e003b6e72dc1a4b1b62bd555a398f5c4b5143b2)
+* Revert "refactor!: Slim API and add proj helpers  " (#6) by [@cabboose](https://github.com/cabboose) with [#d8cac](https://github.com/shayanhabibi/Partas.GitNet/commit/d8cacf7fb4b50c2748662b75a4c7f6a851be66ff)
   
 
 ### [1.1.2](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_1.1.1..._%28GitNet%29_1.1.2) - (2025-11-22)
@@ -133,10 +145,10 @@ which includes [Scopes and Epochs](#epoch-scoped-semver).
 
 #### <!-- 6 --> Others
 
-* Init by [@cabboose](https://github.com/cabboose) with [#cb67c](https://github.com/shayanhabibi/Partas.GitNet/commit/cb67cb3aff5439a7c97c55c60e0b8b2b90abd995)
+* init by [@cabboose](https://github.com/cabboose) with [#0b1de](https://github.com/shayanhabibi/Partas.GitNet/commit/0b1de606a16bf4a973759662fd1dd080de024905)
   
 
-* init by [@cabboose](https://github.com/cabboose) with [#0b1de](https://github.com/shayanhabibi/Partas.GitNet/commit/0b1de606a16bf4a973759662fd1dd080de024905)
+* Init by [@cabboose](https://github.com/cabboose) with [#cb67c](https://github.com/shayanhabibi/Partas.GitNet/commit/cb67cb3aff5439a7c97c55c60e0b8b2b90abd995)
   
 
 <div align="right"><a href="#quick-navigation">(back to top)</a></div>
