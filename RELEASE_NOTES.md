@@ -13,7 +13,7 @@ which includes [Scopes and Epochs](#epoch-scoped-semver).
 
 **Scope** | Current Release | Commit Count
 :--- | :---: | :---:
-[**GitNet**](#gitnet) | [3.0.0](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_2.0.5..._%28GitNet%29_3.0.0) | 17 commits
+[**GitNet**](#gitnet) | [3.0.0](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_2.0.5..._%28GitNet%29_3.0.0) | 18 commits
 [**SepochSemver**](#sepochsemver) | [0.5.0](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28SepochSemver%29_0.4.2..._%28SepochSemver%29_0.5.0) | 3 commits
 [**Markdown**](#markdown) | [0.1.0](https://github.com/shayanhabibi/Partas.GitNet/commit/c822ad300480de197d5415ccecf25a216a4434fa) | None yet!
 
@@ -23,6 +23,9 @@ which includes [Scopes and Epochs](#epoch-scoped-semver).
 # GitNet
 
 ### [UNRELEASED](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_3.0.0...HEAD)
+
+* bump project file to 2026 by [@shayanhabibi](https://github.com/shayanhabibi) with [#58efd](https://github.com/shayanhabibi/Partas.GitNet/commit/58efdd4b4fb0fc7495315955f6825fe418de58af)
+  
 
 ### [3.0.0](https://github.com/shayanhabibi/Partas.GitNet/compare/_%28GitNet%29_2.0.5..._%28GitNet%29_3.0.0) - (2026-02-01)
 
