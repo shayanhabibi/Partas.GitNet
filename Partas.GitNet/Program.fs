@@ -63,6 +63,11 @@ type GitNetRuntime with
     member this.WriteToOutputAndCommit(content: string) =
         this.WriteToOutputAndStage content
         this.CommitChanges()
+    /// <summary>
+    /// Writes the given string to the output path in the <c>GitNetConfig</c> and commits the changes.
+    /// Returns a Result DU indicating whether the write succeeded or not.
+    /// </summary>
+    /// <param name="content">The content to write to the output path</param>
     member this.TryWriteToOutputAndCommit(content: string) =
         this.TryWriteToOutputAndStage content
         |> Result.bind (fun _ -> this.TryCommitChanges())
