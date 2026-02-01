@@ -198,7 +198,7 @@ let dependencyMapping = [
     ==> Ops.Build
     ==> Ops.Pack
     ==> Ops.GitPush
-    // ==> Ops.Publish
+    ==> Ops.Publish
 ]
 
 [<EntryPoint>]
