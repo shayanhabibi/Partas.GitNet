@@ -12,7 +12,7 @@
         <RepositoryType>git</RepositoryType>
         <PackageTags>Partas;Semver;Git;AutoVersioning;CI;F#;FSharp;Automation;DevOps</PackageTags>
         <Authors>Shayan Habibi</Authors>
-        <Copyright>Copyright © Shayan Habibi 2025</Copyright>
+        <Copyright>Copyright © Shayan Habibi 2026</Copyright>
         <Version>3.0.0</Version>
         <PackageVersion>3.0.0</PackageVersion>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
